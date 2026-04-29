@@ -91,6 +91,8 @@ Summarize the top 3–5 rows in prose, including absolute spend and share of tot
 3. **Sanity-check totals.** If `Total: 0` came back, say so explicitly — don't make up narrative from an empty report.
 4. **Flag missing sort support.** `get_campaign_history_report` accepts no sort/filter; if the user asked for "sorted history", explain that history returns API default order and offer to re-pull via the breakdown report instead.
 
+*(Attribution + timeframe rules for CPA / CVR / Leads / ROAS are enforced globally by `os/guardrails.md` § "Metrics and attribution" — they apply to every report summary you produce.)*
+
 ## Gotchas
 
 - **CSV, not JSON.** Report tools differ from campaign/account tools in response format.

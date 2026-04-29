@@ -104,4 +104,4 @@ These are placeholders that should be updated by the repo maintainer before the 
 - **`SECURITY.md`** — replace `security@taboola.com` with the real disclosure address if it differs.
 - **`plugin.json` `author`** — currently `"Taboola"`; specify a team or individual maintainer if desired.
 - **`homepage` / `repository` URLs** — confirm the repo lives at `github.com/taboola/realize-claude-plugin` or update.
-- **`CONTRIBUTING.md` contact line** — replace the `TODO: add team alias` comment with the real Taboola Realize team contact.
+- **`CONTRIBUTING.md` contact line** — replace the `TODO: add team alias` comment with the real Realize team contact at Taboola.

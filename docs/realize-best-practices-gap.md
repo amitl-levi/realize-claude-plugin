@@ -26,7 +26,7 @@ This document serves three jobs, in order of size:
 - [A/B Testing Campaign Items](https://help.taboola.com/hc/en-us/articles/360063535593-A-B-Testing-Campaign-Items)
 
 ### Infrastructure
-- Realize console: [ads.realizeperformance.com](https://ads.realizeperformance.com)
+- Realize UI: [ads.realizeperformance.com](https://ads.realizeperformance.com)
 - MCP server: `https://mcp.realize.com/mcp` (`streamable-http`, OAuth 2.1)
 - MCP source: [taboola/realize-mcp](https://github.com/taboola/realize-mcp)
 
@@ -59,7 +59,7 @@ No create, update, delete, pause, conversion-tracking, audience, or configuratio
 | "Stay broad at launch" targeting guidance | `create-campaign` Step 5 |
 | "Leave blocklists / brand safety clear initially" | `create-campaign` Step 6 |
 | Audience targeting (skip for new; use suppression) | `create-campaign` Step 7 |
-| 3–10 ads per campaign; "pre-qualify the click"; avoid generic CTAs | `create-campaign` Step 8 |
+| 4–6 ads per campaign (never more than 10); "pre-qualify the click"; avoid generic CTAs | `create-campaign` Step 8 |
 | Dynamic Keyword Insertion mention | `create-campaign` Step 8 |
 | Post-launch MCP verification via `get_campaign` + `get_campaign_items` | `create-campaign` Step 10 |
 
@@ -69,8 +69,8 @@ No create, update, delete, pause, conversion-tracking, audience, or configuratio
 |---|---|
 | Real-time data review via CSV reports | `reports` (wraps all 4 report tools) |
 | Device / Location / Content-type comparisons | `optimize-campaign` Step 3 |
-| $50/day minimum spend threshold | `optimize-campaign` Prerequisites + Prescription rules |
-| 500–1000 clicks per item threshold | `optimize-campaign` Prerequisites + agent responsibility #7 |
+| Daily spend ≥ 8× CPA goal threshold (sourced from realize-toolkit operational guidance, Apr 2026) | `optimize-campaign` Prerequisites + Prescription rules |
+| 100+ clicks per item threshold (sourced from realize-toolkit operational guidance, Apr 2026) | `optimize-campaign` Prerequisites + agent responsibility #7 |
 | CTR × CVR × CPA prescription rules | `optimize-campaign` Step 2 table |
 | Pause low / isolate high / duplicate rules | `optimize-campaign` Prescription rules |
 | "Don't just raise the bid to fix CPA" | `optimize-campaign` Gotchas |
@@ -87,21 +87,19 @@ Items where existing skill content is **factually inaccurate** against the sourc
 |---|---|---|---|
 | `create-campaign/SKILL.md` — review cycle | "24–48 hours" | Target: **"one business day"**; some reviews take longer; no expedited option; contact is `support@taboola.com` or the user's Account Manager | [Campaign Review Process](https://www.taboola.com/help/en/articles/3878200-campaign-review-process) |
 | `create-campaign/SKILL.md` — review outcomes | Implies binary approved/rejected | Three outcomes: **Fully launched** (all items ready), **Partially launched** (≥1 item running), **Rejected** (none running) | Campaign Review Process |
-| `create-campaign/SKILL.md` + `optimize-campaign/SKILL.md` — creative variations count | "5–10 title/thumbnail variations per URL" (derived from the optimization article) | Official A/B Testing guidance: **4–6 titles + a similar number of images/motion ads per URL** as a starting point | [A/B Testing Campaign Items](https://help.taboola.com/hc/en-us/articles/360063535593-A-B-Testing-Campaign-Items) |
-
-These three corrections are the only suggested edits to existing skill files. Everything else discovered during this review is cataloged under **Part 3** as a future ability of the MCP, not as skill content.
+These two corrections are the only suggested edits to existing skill files. (A third correction — creative variations count — has been applied: skills now align with the toolkit's `3 distinct titles + 3 unique images per campaign` rather than the official A/B testing article's `4–6 titles + similar images per URL`. Toolkit treated as authoritative on this point.) Everything else discovered during this review is cataloged under **Part 3** as a future ability of the MCP, not as skill content.
 
 ---
 
 ## Part 3 — Potential Future MCP Abilities
 
-Each entry here is a capability called out by the best-practice articles that the plugin **cannot touch today** because the MCP does not expose a relevant tool. These are listed as candidates for upstream ([taboola/realize-mcp](https://github.com/taboola/realize-mcp)) to consider adding. Until they are added, Claude's only path to any of these is to tell the user to do it themselves in the Realize console — and the plugin's skills should remain silent on the detailed how-to so they don't drift into being a UI manual.
+Each entry here is a capability called out by the best-practice articles that the plugin **cannot touch today** because the MCP does not expose a relevant tool. These are listed as candidates for upstream ([taboola/realize-mcp](https://github.com/taboola/realize-mcp)) to consider adding. Until they are added, Claude's only path to any of these is to tell the user to do it themselves in the Realize UI — and the plugin's skills should remain silent on the detailed how-to so they don't drift into being a UI manual.
 
-Listed with the source article, a one-line description of what the ability would do, and the console surface that exists for it today.
+Listed with the source article, a one-line description of what the ability would do, and the UI surface that exists for it today.
 
 ### 3.A — Campaign lifecycle writes (create / edit / pause / duplicate)
 
-| Future ability | Does what | Today's console path | Source |
+| Future ability | Does what | Today's UI path | Source |
 |---|---|---|---|
 | `create_campaign` | Build a new campaign with all required fields (name, branding, objective, scheduling, bid strategy, budget) | `Campaigns → +New → Campaign` | Setup |
 | `update_campaign` | Edit any field on a launched campaign (budget, bidding, targeting, scheduling) | Campaign detail → Edit per section | Setup + Optimization |
@@ -112,7 +110,7 @@ Listed with the source article, a one-line description of what the ability would
 
 ### 3.B — Campaign item writes (creatives / inventory)
 
-| Future ability | Does what | Today's console path | Source |
+| Future ability | Does what | Today's UI path | Source |
 |---|---|---|---|
 | `add_campaign_item` | Create an ad with thumbnail, headline, URL, optional CTA/description | Campaign Inventory → +New Item | Setup Step 8 |
 | `update_campaign_item` | Edit item fields post-launch | Item form | Setup Step 8 |
@@ -123,18 +121,18 @@ Listed with the source article, a one-line description of what the ability would
 
 ### 3.C — Targeting & audience writes
 
-| Future ability | Does what | Today's console path | Source |
+| Future ability | Does what | Today's UI path | Source |
 |---|---|---|---|
 | `update_targeting` | Adjust Location / Platform / Device / Connection / OS / Browser on a campaign | Campaign → Targeting | Setup + Optimization |
 | `list_audiences` / `create_audience` | List account audiences or create from pixel/events | `Audiences → New Audience` | Retargeting |
-| `attach_audience_to_campaign` | Add `My Audiences` / Marketplace / Contextual or suppression audience to a campaign | Campaign → Audience Targeting | Setup Step 7 |
+| `attach_audience_to_campaign` | Add `My Audiences` / Taboola First Party Audiences / Contextual or suppression audience to a campaign | Campaign → Audience Targeting | Setup Step 7 |
 | `update_blocklist` | Add/remove sites from the campaign's block list | Advanced Options → Block Sites | Optimization |
 | `toggle_brand_safety_pre_bid` | Enable/disable the brand-safety filter | Advanced Options | Setup Step 6 |
 | `setup_campaign_clicker_retargeting` | The IMG-tag-in-3rd-party-pixels flow that builds an audience from campaign clickers (~2 week build) | `Audiences → New Audience → From Pixel → Campaign Clickers`, then paste IMG tag into the originating campaign | Retargeting article |
 
 ### 3.D — Bid & budget writes
 
-| Future ability | Does what | Today's console path | Source |
+| Future ability | Does what | Today's UI path | Source |
 |---|---|---|---|
 | `update_bid` | Adjust campaign CPC | Campaign → Bidding | Optimization |
 | `update_daily_budget` / `update_monthly_budget` | Change budget caps | Campaign → Budget | Both |
@@ -144,7 +142,7 @@ Listed with the source article, a one-line description of what the ability would
 
 This is the single largest capability gap. The plugin cannot advise on conversion-tracking setup because it has no visibility into it; users hitting "my conversion count is zero" cannot be served by the MCP today.
 
-| Future ability | Does what | Today's console path | Source |
+| Future ability | Does what | Today's UI path | Source |
 |---|---|---|---|
 | `get_pixel_status` | Read pixel health indicator (`Active` / `No Recent Activity` / `No Activity` / `Waiting for Pixel` / `Not Installed`) and last-event timestamp | `Tracking` top bar | [Taboola Pixel Overview](https://www.taboola.com/help/en/articles/6248618-taboola-pixel-overview) |
 | `list_conversions` | List URL-based / event-based / codeless conversions defined on the account | `Tracking → Conversions` | [Defining and Creating Conversions](https://developers.taboola.com/pixel/docs/defining-conversions) |
@@ -156,7 +154,7 @@ This is the single largest capability gap. The plugin cannot advise on conversio
 
 ### 3.F — Review-process visibility
 
-| Future ability | Does what | Today's console path | Source |
+| Future ability | Does what | Today's UI path | Source |
 |---|---|---|---|
 | `get_review_state` | Pending / Fully launched / Partially launched / Rejected plus per-item breakdown | Campaign list status column | Campaign Review Process |
 | `get_rejection_reasons` | Read policy-violation codes on rejected campaigns or items | Rejection notice | Campaign Review Process + linked Rejection Reasons doc |

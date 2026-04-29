@@ -5,7 +5,7 @@ This directory contains a **manual QA checklist** for the Realize plugin. There 
 ## Prerequisites
 
 1. Claude Code installed (`claude --version` works).
-2. A Taboola Realize account (ideally a **test** or sandbox account — see Gotchas).
+2. A Realize account (ideally a **test** or sandbox account — see Gotchas).
 3. This plugin installed or loaded locally (see root [README](../README.md)).
 4. Network access to `https://mcp.realize.com/mcp`.
 

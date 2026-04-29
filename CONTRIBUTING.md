@@ -39,4 +39,4 @@ Thanks for your interest in improving the Realize Claude Plugin. Contributions o
 
 ## Contact
 
-For questions that don't belong in an issue, email the Taboola Realize team (TODO: add team alias before the first public release).
+For questions that don't belong in an issue, email the Realize team at Taboola (TODO: add team alias before the first public release).

@@ -1,12 +1,12 @@
 ---
 name: create-campaign
-description: Guide the user through creating or editing a Realize campaign in the Realize console. Activates on any write-intent request (create, edit, pause, duplicate, delete) when the current MCP release does not expose a tool for that action. Grounded in Taboola's official setup guide — uses the exact field names, enum values, budget-vs-bid-strategy rules, and learning-phase recommendations. Falls back to a UI walkthrough rather than fabricating a tool call; offers MCP verification once the user is done.
+description: Guide the user through creating or editing a Realize campaign in the Realize UI. Activates on any write-intent request (create, edit, pause, duplicate, delete) when the current MCP release does not expose a tool for that action. Grounded in the realize-toolkit's setup guidance and Taboola's official setup guide — uses the exact field names, enum values, budget-vs-bid-strategy rules, and learning-phase recommendations. Falls back to a UI walkthrough rather than fabricating a tool call; offers MCP verification once the user is done.
 allowed-tools: ["Read", "AskUserQuestion"]
 ---
 
 # Create Campaign (UI Guidance)
 
-This skill activates when the user asks for an action — campaign creation, editing, pausing, budget changes, creative swaps — that **no current MCP tool supports**. It walks the user through the equivalent steps in the **Realize console** using the setup flow as documented in Taboola's [official setup guide](https://www.taboola.com/help/en/articles/10473049-setting-up-a-new-campaign).
+This skill activates when the user asks for an action — campaign creation, editing, pausing, budget changes, creative swaps — that **no current MCP tool supports**. It walks the user through the equivalent steps in the **Realize UI** using the setup flow as documented in Taboola's [official setup guide](https://www.taboola.com/help/en/articles/10473049-setting-up-a-new-campaign).
 
 After the user says they've completed the UI flow, this skill hands back to the `realize-analyst` agent to verify the new state via the MCP tools that *do* exist (e.g., `get_campaign`, `get_all_campaigns`).
 
@@ -18,9 +18,9 @@ Any of: *create, make, set up, launch, edit, update, change, pause, resume, dupl
 
 ## Response pattern
 
-1. **Name the gap up front** (one sentence): *"There's no MCP tool today for that action, so I can't make the change directly — but I can walk you through it in the Realize console and then verify the result."*
+1. **Name the gap up front** (one sentence): *"There's no MCP tool today for that action, so I can't make the change directly — but I can walk you through it in the Realize UI and then verify the result."*
 2. **Ask the key parameters** via `AskUserQuestion` — only the ones you need for the specific action. For a new campaign, lean on the enums and rules below so the user isn't guessing. For a campaign-improvement request, route to `optimize-campaign` first if the user has an existing campaign to diagnose.
-3. **Walk through the UI step by step**, using the exact labels from the console. Stick to the walkthroughs below; don't invent paths.
+3. **Walk through the UI step by step**, using the exact labels from the Realize UI. Stick to the walkthroughs below; don't invent paths.
 4. **Offer a verification step**: "Once you've saved it and it's through review (24–48 hours), tell me and I'll pull the campaign via MCP to confirm the settings match."
 
 ## Creating a new campaign — full walkthrough
@@ -29,7 +29,7 @@ Source: Taboola "Setting Up a New Campaign".
 
 ### Step 1 — Navigate
 
-1. Log in to the Realize console.
+1. Log in to the Realize UI.
 2. Open **Campaigns** (left nav).
 3. Click **+New** → **Campaign**. The **New Campaign** page opens.
 
@@ -64,7 +64,7 @@ These are hard Taboola-published minimums. Don't let the user set a budget below
 |---|---|---|
 | **Maximize Conversions** | **10× the CPA goal** per day | For learning-phase stability with conversion optimization. |
 | **Enhanced CPC** | **5× the CPA goal** per day (and **150× CPA monthly**) | — |
-| **Fixed Bid** | **5× the CPA goal** per day (and **150× CPA monthly**) | — |
+| **Fixed Bid** | According to client requirements | According to client requirements |
 
 **For non-conversion campaigns** (Reach / Engagement, where there's no CPA goal): target **100–200 clicks per day** as the minimum data volume. Budget = `CPC × desired clicks/day`. Example: $0.50 CPC × 100–200 clicks = $50–$100/day.
 
@@ -89,7 +89,7 @@ Both settings can be applied later via the `optimize-campaign` flow.
 
 ### Step 7 — Audience Targeting (usually skip for new campaigns)
 
-Types available: **My Audiences**, **Marketplace Audiences**, **Contextual**.
+Types available: **My Audiences**, **Taboola First Party Audiences**, **Contextual**.
 
 Taboola's guidance: **don't target specific audiences on a new campaign** — it collapses reach and distorts data. If the user insists on audience logic, use **audience suppression** (under Conversion settings) to *exclude* already-converted users, rather than *including* a narrow segment.
 
@@ -104,12 +104,12 @@ Optional:
 - **CTA Button**
 - **Ad Description**
 
-**Recommended volume: 3–10 ads per campaign** so the algorithm has variations to test. Creative best practices (from Taboola):
+**Recommended volume: 4–6 ads per campaign (never more than 10)** so the algorithm has variations to test. Creative best practices (from Taboola):
 
 - Titles and thumbnails should **pre-qualify the click** — match what the user will find on the landing page. Misleading creatives spike CTR and tank conversion.
 - Avoid generic CTAs like *"Click Here"* or *"While Supplies Last"* — use original, specific copy.
-- For performance marketers: one URL + 5–10 title/thumbnail variations per campaign.
-- For publishers/brands: up to 10–20 URLs, each with 5–10 variations.
+- For performance marketers: one URL + 3 distinct titles and 3 unique images per campaign.
+- For publishers/brands: up to 10–20 URLs, each with 3 distinct titles and 3 unique images.
 - **Dynamic Keyword Insertion** is available for location, day-of-week, or device (e.g., *"People in {{location}} Can't Get Enough of This Razor"*).
 
 ### Step 9 — Submit and wait
@@ -160,6 +160,6 @@ Once the user confirms completion, call the `realize-analyst` agent (or route ba
 - **Never pretend a write happened.** If the user says "go ahead and create it", restate the limitation and offer the walkthrough instead. Fabricating a successful response is a trust-breaker.
 - **Don't bypass the minimum budget rules.** A $10/day campaign with a $20 CPA goal will waste the $10 — Taboola published those minimums because below them the algorithm can't stabilize.
 - **Don't suggest narrowing targeting at launch** to "focus on the right users" — it's the opposite of Taboola's guidance. Narrow *after* you have real data showing which segments underperform.
-- **Don't invent Realize UI paths that aren't in this file.** For console steps not covered here (advanced audience builder, A/B tests, custom brand-safety rules), direct the user to Realize documentation rather than guessing.
+- **Don't invent Realize UI paths that aren't in this file.** For UI steps not covered here (advanced audience builder, A/B tests, custom brand-safety rules), direct the user to Realize documentation rather than guessing.
 - **Review cycle applies to edits, not just creation.** An edit to an existing live campaign still takes 24–48 hours to re-approve — set that expectation.
 - **Data may lag briefly** in MCP results after UI changes. If `get_campaign` returns the old state right after a save, wait a minute and retry once.

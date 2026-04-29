@@ -1,6 +1,6 @@
 ---
 name: optimize-campaign
-description: Diagnose an underperforming Realize campaign and prescribe fixes grounded in Taboola's official optimization playbook. Uses MCP read tools to pull the data, then recommends adjustments — creative rotation, bid changes, targeting, site blocklists, budget reallocation — that the user applies in the Realize console since MCP currently does not expose write tools. Activates on "why is this campaign underperforming?", "how do I improve CPA?", "what should I pause?", "my CTR is dropping", etc.
+description: Diagnose an underperforming Realize campaign and prescribe fixes grounded in the realize-toolkit's operational guidance and Taboola's official optimization playbook. Uses MCP read tools to pull the data, then recommends adjustments — creative rotation, bid changes, targeting, site blocklists, budget reallocation — that the user applies in the Realize UI since MCP currently does not expose write tools. Activates on "why is this campaign underperforming?", "how do I improve CPA?", "what should I pause?", "my CTR is dropping", etc.
 allowed-tools: ["Read", "Bash", "AskUserQuestion"]
 ---
 
@@ -24,8 +24,8 @@ If the user asks to *create* a new campaign, route to the `create-campaign` skil
 - `account_id` resolved via the `accounts` skill.
 - A specific `campaign_id` in scope, or the user asking "across my whole account". For single-campaign questions, identify the campaign first via the `campaigns` skill if needed.
 - Enough data to reason about. Taboola's thresholds:
-  - **Minimum daily spend:** $50/day. Below this, any diagnosis is premature — tell the user so explicitly.
-  - **Minimum clicks per item before judging:** 500–1000. Below this, recommending a pause or scale action is unreliable.
+  - **Minimum daily spend for CPA/CVR confidence:** `daily spend ≥ 8× CPA goal`. Below this, lead the analysis with "signal is weak due to low spend" rather than prescribing CPA fixes.
+  - **Minimum clicks per item before judging:** 100+. Below that, note insufficient data and exclude the item from pause/scale recommendations.
 
 If the data isn't there yet, say so. Don't prescribe fixes off a small sample.
 
@@ -62,16 +62,16 @@ Taboola's article emphasizes that *user experiences and behaviors differ across 
 - **Location** — any geo consistently driving higher CPA than the others?
 - **Site / publisher** — use `get_campaign_site_day_breakdown_report` to find sites consuming spend without converting.
 - **Time of day** — day-parting patterns that warrant a separate campaign for different windows.
-- **Creative (item)** — which items are below the 500–1000 click threshold with poor CVR?
+- **Creative (item)** — which items are below the 100+ click threshold with poor CVR?
 
 ### 4. Prescribe — and name the action
 
-The MCP currently has no write tools, so every prescription is a **user action in the Realize console**. Be explicit about what they should change and where:
+The MCP currently has no write tools, so every prescription is a **user action in the Realize UI**. Be explicit about what they should change and where:
 
 - **Pause a low-performing item** — Campaigns → open the campaign → Campaign Inventory → toggle the item's status.
 - **Raise CPC / adjust bid** — Campaigns → open the campaign → Bidding.
 - **Increase daily budget** — Campaigns → open the campaign → Budget.
-- **Add creative variations** — Campaigns → Campaign Inventory → **+New Item** (recommended: 5–10 title/thumbnail variations per URL; 3–10 items per campaign for algorithm testing).
+- **Add creative variations** — Campaigns → Campaign Inventory → **+New Item** (recommended: 3 distinct titles + 3 unique images per campaign; 4–6 items per campaign for algorithm testing, never more than 10).
 - **Block a site** — Campaigns → open the campaign → Advanced Options → Block Sites.
 - **Tighten targeting** — Campaigns → open the campaign → Location / Platform / Audiences.
 - **Isolate a top performer** — create a new campaign containing only the winning item(s) at an optimized CPC so you control its bid/budget independently.
@@ -82,11 +82,11 @@ After the user says they've made the change, offer to re-verify: pull `get_campa
 
 Condition-action rules from the official playbook:
 
-- **≥500–1000 clicks on an item + low CVR vs. siblings** → pause the item.
-- **≥500–1000 clicks on an item + high CVR vs. siblings** → pause the others, create a new campaign around the winner at an optimized CPC.
-- **Good overall performance, low volume** → raise CPC, add 5–10 title/thumbnail variations, expand targeting.
+- **≥100+ clicks on an item + low CVR vs. siblings** → pause the item.
+- **≥100+ clicks on an item + high CVR vs. siblings** → pause the others, create a new campaign around the winner at an optimized CPC.
+- **Good overall performance, low volume** → raise CPC, add new title and image variations, expand targeting.
 - **CPA above goal** → tighten targeting, block low-return sites, pause low-performing items. Don't simply raise the bid.
-- **Below $50/day in spend** → increase budget *before* drawing conclusions; you don't have enough data yet.
+- **Daily spend below 8× CPA goal** → increase budget *before* drawing conclusions; signal is too weak.
 - **Campaign <7–10 days old** → avoid major optimizations; the algorithm is still learning. Surface this caveat when the data window is too recent.
 
 ## Metrics cheat sheet
@@ -100,8 +100,8 @@ Condition-action rules from the official playbook:
 
 ## Gotchas
 
-- **Don't optimize against a too-small sample.** Below 500–1000 clicks per item or $50/day of spend, the numbers are noise. Say so rather than prescribing.
+- **Don't optimize against a too-small sample.** Below 100 clicks per item, or daily spend below 8× CPA goal, the numbers are noise. Say so rather than prescribing.
 - **Don't just raise the bid to fix CPA.** The official playbook is explicit: raising CPC expands volume, but if conversion isn't working you'll spend more to acquire equally-bad users. Fix the creative or landing page first.
-- **Don't hallucinate a pause tool.** The MCP has no write tools today — every pause / bid change / creative swap is a user action in the Realize console. Name the exact UI path and wait for the user to confirm before re-verifying.
+- **Don't hallucinate a pause tool.** The MCP has no write tools today — every pause / bid change / creative swap is a user action in the Realize UI. Name the exact UI path and wait for the user to confirm before re-verifying.
 - **Respect the learning phase.** Campaigns under 7–10 days old haven't established a baseline; major changes now will reset the algorithm's learning.
 - **Changes need time to manifest.** After the user applies a change, wait 3–7 days of fresh data before judging the new state. Don't re-diagnose the next hour.

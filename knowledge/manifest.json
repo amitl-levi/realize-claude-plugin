@@ -1,0 +1,193 @@
+{
+  "version": "0.1.0",
+  "description": "Realize ToolKit knowledge base — topic index for AI agents.",
+  "pathConvention": "Every topic.path is relative to the directory containing this manifest file (i.e., the /knowledge directory).",
+  "topics": [
+    {
+      "slug": "bidding",
+      "title": "Bidding",
+      "path": "bidding.md",
+      "tags": [
+        "bidding",
+        "bid strategy",
+        "CPA",
+        "Target CPA",
+        "Enhanced CPC",
+        "Maximize Conversions",
+        "Fixed Bid",
+        "learning phase",
+        "CPA volatility",
+        "high CPA",
+        "fluctuating CPA",
+        "scaling bids"
+      ],
+      "description": "Bidding strategy selection, learning phase behaviour, CPA troubleshooting, and scaling adjustments."
+    },
+    {
+      "slug": "tracking",
+      "title": "Tracking",
+      "path": "tracking.md",
+      "tags": [
+        "tracking",
+        "Taboola Pixel",
+        "S2S",
+        "server to server",
+        "conversion events",
+        "conversion tracking",
+        "ROAS",
+        "UTM",
+        "tracking parameters",
+        "click ID",
+        "GTM",
+        "Google Tag Manager",
+        "attribution"
+      ],
+      "description": "Pixel setup, S2S integration, conversion events, ROAS tracking, parameters, and debugging."
+    },
+    {
+      "slug": "targeting",
+      "title": "Targeting",
+      "path": "targeting.md",
+      "tags": [
+        "targeting",
+        "audience segments",
+        "Taboola First Party Audiences",
+        "geo targeting",
+        "platform targeting",
+        "contextual targeting",
+        "predictive audiences",
+        "retargeting",
+        "audience expansion",
+        "scheduling",
+        "dayparting"
+      ],
+      "description": "Audience strategy, geo and platform targeting, expansion playbook, retargeting, and predictive audiences."
+    },
+    {
+      "slug": "creative",
+      "title": "Creative",
+      "path": "creative.md",
+      "tags": [
+        "creative",
+        "Sponsored Content",
+        "display ads",
+        "thumbnails",
+        "titles",
+        "headlines",
+        "motion ads",
+        "video",
+        "Gen AI AdMaker",
+        "landing page",
+        "landing pages",
+        "creative review",
+        "creative testing",
+        "creative fatigue",
+        "social importer"
+      ],
+      "description": "Sponsored Content ads, display ads, Gen AI AdMaker, landing pages, creative review, and creative testing."
+    },
+    {
+      "slug": "budget",
+      "title": "Budget",
+      "path": "budget.md",
+      "tags": [
+        "budget",
+        "daily budget",
+        "total budget",
+        "10X rule",
+        "budget pacing",
+        "underspending",
+        "overspending",
+        "scaling budget",
+        "short-burst",
+        "flight dates"
+      ],
+      "description": "Budget planning, the 10× CPA rule, pacing, scaling, and short-burst campaigns."
+    },
+    {
+      "slug": "campaign-structure",
+      "title": "Campaign Structure",
+      "path": "campaign-structure.md",
+      "tags": [
+        "campaign structure",
+        "Campaign Groups",
+        "campaign objectives",
+        "campaign types",
+        "Sponsored Content vs display",
+        "campaign hierarchy",
+        "Budget Distributor",
+        "naming conventions"
+      ],
+      "description": "Campaign Groups, objectives, campaign types (Sponsored Content / Display), hierarchy, and naming conventions."
+    },
+    {
+      "slug": "brand-safety",
+      "title": "Brand Safety",
+      "path": "brand-safety.md",
+      "tags": [
+        "brand safety",
+        "DoubleVerify",
+        "DV",
+        "IAS",
+        "Integral Ad Science",
+        "category exclusions",
+        "keyword exclusions",
+        "supply quality",
+        "third-party tags",
+        "verification"
+      ],
+      "description": "Native safety tools, DV/IAS integration, topic exclusions, and placement complaints."
+    },
+    {
+      "slug": "custom-rules",
+      "title": "Custom Rules",
+      "path": "custom-rules.md",
+      "tags": [
+        "Custom Rules",
+        "SpendGuard",
+        "automated rules",
+        "publisher rules",
+        "time-based rules",
+        "CPA cap",
+        "spend cap",
+        "auto-pause",
+        "rule thresholds",
+        "data sufficiency"
+      ],
+      "description": "SpendGuard, Custom Rules, time-based rules, configuration best practices, and do's and don'ts."
+    },
+    {
+      "slug": "site-management",
+      "title": "Site Management",
+      "path": "site-management.md",
+      "tags": [
+        "site management",
+        "publisher management",
+        "publisher blocking",
+        "publisher performance",
+        "approved list",
+        "block list",
+        "site targeting",
+        "publisher CPA"
+      ],
+      "description": "Publisher performance monitoring, blocking decisions, approved lists, and cross-cutting CPA diagnosis."
+    },
+    {
+      "slug": "environments",
+      "title": "Environments",
+      "path": "environments.md",
+      "tags": [
+        "environments",
+        "placements",
+        "Mail",
+        "Apple News",
+        "Lockscreen",
+        "display expansion",
+        "Sponsored Content to display",
+        "upsell",
+        "inventory"
+      ],
+      "description": "Environment overview, expansion strategy, and the Sponsored Content to Display upsell path."
+    }
+  ]
+}
