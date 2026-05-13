@@ -18,14 +18,20 @@ This is a thin Claude Code plugin that wraps the [Realize remote MCP](https://gi
 └──────────┬──────────┘
            │
            ├──► accounts skill        → search_accounts
-           ├──► campaigns skill       → get_all_campaigns, get_campaign, ...
+           ├──► campaigns skill       → list_campaigns, get_campaign, list_items, get_item
+           ├──► discovery skill       → search_geos, search_techno, search_audiences,
+           │                            search_lookalike_audiences, search_contextual_segments,
+           │                            search_publishers, search_conversion_rules,
+           │                            list_time_zones, list_cta_types
            ├──► reports skill         → 4 report tools (CSV output)
-           └──► create-campaign skill → UI walkthrough (no MCP writes)
+           └──► create-campaign skill → UI walkthrough (no MCP writes enabled here)
                      │
                      ▼
 ┌────────────────────────────────────────┐
 │ Realize MCP (https://mcp.realize.com)  │
-│  OAuth 2.1, 11 tools at current rev    │
+│  OAuth 2.1, 18 read tools wired here   │
+│  (upstream also exposes 4 writes —     │
+│  not enabled in this plugin revision)  │
 └────────────────────────────────────────┘
 ```
 
