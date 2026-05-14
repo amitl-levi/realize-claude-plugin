@@ -76,7 +76,7 @@ The MCP currently has no write tools, so every prescription is a **user action i
 - **Tighten targeting** — Campaigns → open the campaign → Location / Platform / Audiences.
 - **Isolate a top performer** — create a new campaign containing only the winning item(s) at an optimized CPC so you control its bid/budget independently.
 
-After the user says they've made the change, offer to re-verify: pull `get_campaign` / `get_campaign_items` to confirm the new state, or re-run the relevant report after a data window (typically another 3–7 days).
+After the user says they've made the change, offer to re-verify: pull `get_campaign` / `list_items` to confirm the new state, or re-run the relevant report after a data window (typically another 3–7 days).
 
 ## Prescription rules — quick reference
 

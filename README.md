@@ -2,7 +2,7 @@
 
 Query Taboola **Realize** campaigns and pull performance reports through natural language, straight from Claude Code. Powered by the [Realize remote MCP](https://github.com/taboola/realize-mcp).
 
-> **Scope today:** account discovery, campaign inspection, and performance reports. For actions the MCP does not yet expose as tools (e.g., creating or editing a campaign), the plugin walks you through the Realize console and then verifies the result via MCP.
+> **Scope today:** account discovery, campaign + item inspection, targeting / audience / publisher / conversion-rule lookup, and performance reports — all read-only. This plugin does not enable write operations; for write-intent requests (creating, editing, pausing, duplicating), the plugin walks you through the Realize console and then verifies the result via MCP.
 
 ## Prerequisites
 
@@ -22,7 +22,7 @@ Choose the path that matches how you consume Claude Code plugins:
 claude plugin i realize-ads-api
 ```
 
-That single command installs everything — the `realize-analyst` agent, the four skills, and the Realize MCP wiring. On the first tool call, Claude Code opens a browser for Taboola SSO to complete OAuth 2.1; after that you're ready to run prompts like *"List my Realize accounts"*.
+That single command installs everything — the `realize-analyst` agent, the skills, and the Realize MCP wiring. On the first tool call, Claude Code opens a browser for Taboola SSO to complete OAuth 2.1; after that you're ready to run prompts like *"List my Realize accounts"*.
 
 > Requires the plugin to be registered with a Claude Code plugin marketplace your CLI has access to. See [Claude Code plugin docs](https://code.claude.com/docs/en/plugins) for the marketplace configuration specific to your Taboola distribution.
 
@@ -85,9 +85,10 @@ For self-hosted HTTP mode and full local deployment details, see the [realize-mc
 |---|---|
 | [`accounts`](skills/accounts/SKILL.md) | Find Realize accounts and capture the `account_id` every other tool needs |
 | [`campaigns`](skills/campaigns/SKILL.md) | List and inspect campaigns and their creatives |
+| [`discovery`](skills/discovery/SKILL.md) | Look up targeting metadata, audiences, publishers, conversion rules, time zones, and CTA types — resolves opaque IDs before campaign work |
 | [`reports`](skills/reports/SKILL.md) | Pull the four Realize performance reports and interpret the CSV output |
 | [`optimize-campaign`](skills/optimize-campaign/SKILL.md) | Diagnose underperforming campaigns against Taboola's official playbook (500–1000 clicks per item, $50/day minimum, 7–10 day learning phase) and prescribe concrete UI actions |
-| [`create-campaign`](skills/create-campaign/SKILL.md) | Walk through the Realize console setup flow (exact Marketing Objective enum, Bid Strategy × budget minimums, learning-phase defaults) for actions not yet exposed as MCP tools, plus MCP verification afterward |
+| [`create-campaign`](skills/create-campaign/SKILL.md) | Walk through the Realize console setup flow (exact Marketing Objective enum, Bid Strategy × budget minimums, learning-phase defaults) for write-intent actions, plus MCP verification afterward |
 
 The plugin also ships one agent, [`realize-analyst`](agents/realize-analyst.md), which routes natural-language questions to the right skill/tool and summarizes results in prose.
 
@@ -106,6 +107,13 @@ The plugin also ships one agent, [`realize-analyst`](agents/realize-analyst.md),
 "Which items on campaign 67890 should I pause?"
 "Which sites are wasting my spend this month?"
 "My CPA doubled over the last two weeks. Help me diagnose."
+
+# discovery (look up IDs / catalogs)
+"What audiences are available for this account?"
+"List all DMAs in the US."
+"Show me publishers matching 'news' on this account."
+"What time zones does Realize support?"
+"What CTA button types exist for native items?"
 
 # setup (UI walkthrough)
 "Create a new Online Purchases campaign with a $25 CPA target."
