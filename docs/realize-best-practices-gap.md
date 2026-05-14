@@ -37,7 +37,7 @@ The MCP exposes **11 tools at the current release**, all read-only:
 | Area | Tools |
 |---|---|
 | Accounts | `search_accounts` |
-| Campaigns | `get_all_campaigns`, `get_campaign`, `get_campaign_items`, `get_campaign_item` |
+| Campaigns | `list_campaigns`, `get_campaign`, `list_items`, `get_item` |
 | Reports (CSV) | `get_top_campaign_content_report`, `get_campaign_breakdown_report`, `get_campaign_history_report`, `get_campaign_site_day_breakdown_report` |
 | Auth (stdio only) | `get_auth_token`, `get_token_details` |
 
@@ -61,7 +61,7 @@ No create, update, delete, pause, conversion-tracking, audience, or configuratio
 | Audience targeting (skip for new; use suppression) | `create-campaign` Step 7 |
 | 4–6 ads per campaign (never more than 10); "pre-qualify the click"; avoid generic CTAs | `create-campaign` Step 8 |
 | Dynamic Keyword Insertion mention | `create-campaign` Step 8 |
-| Post-launch MCP verification via `get_campaign` + `get_campaign_items` | `create-campaign` Step 10 |
+| Post-launch MCP verification via `get_campaign` + `list_items` | `create-campaign` Step 10 |
 
 ### From "How to Improve Campaign Performance"
 

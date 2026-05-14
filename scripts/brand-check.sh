@@ -101,7 +101,7 @@ scan_fail "Absolute privacy / safety claim" '(100%\s+brand\s+safe|gdpr\s+complia
 scan_fail "Internal codename: Backstage"    '\bbackstage\b' "${PUBLIC[@]}"
 scan_fail "Internal codename: blindspot"    '\bblindspot\b' "${PUBLIC[@]}"
 scan_fail "Schema / column names"           '\b(syndicator_id|affiliate_id|unip_rules|campaign_history)\b' "${PUBLIC[@]}"
-# Note: item_id removed from this list in the plugin's copy of the linter — it's a public MCP tool parameter name (clients pass it to get_campaign_item). It remains banned in the toolkit's linter where it refers to internal schema columns.
+# Note: item_id removed from this list in the plugin's copy of the linter — it's a public MCP tool parameter name (clients pass it to get_item). It remains banned in the toolkit's linter where it refers to internal schema columns.
 
 # 4. Repo / authorship leaks (always)
 scan_fail "Inline Project Mastery citation" 'Source:\s*Project Mastery' "${ALL[@]}"

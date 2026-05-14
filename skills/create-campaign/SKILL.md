@@ -8,7 +8,7 @@ allowed-tools: ["Read", "AskUserQuestion"]
 
 This skill activates when the user asks for an action — campaign creation, editing, pausing, budget changes, creative swaps — that **no current MCP tool supports**. It walks the user through the equivalent steps in the **Realize UI** using the setup flow as documented in Taboola's [official setup guide](https://www.taboola.com/help/en/articles/10473049-setting-up-a-new-campaign).
 
-After the user says they've completed the UI flow, this skill hands back to the `realize-analyst` agent to verify the new state via the MCP tools that *do* exist (e.g., `get_campaign`, `get_all_campaigns`).
+After the user says they've completed the UI flow, this skill hands back to the `realize-analyst` agent to verify the new state via the MCP tools that *do* exist (e.g., `get_campaign`, `list_campaigns`).
 
 When upstream adds new tools that cover an action this skill currently handles via UI, update the agent's Tool Reference and trim the affected walkthrough here in an explicit PR.
 
@@ -123,7 +123,7 @@ Optional:
 Offer the user a verification step once the campaign is live:
 
 - Pull `get_campaign(account_id=..., campaign_id=...)` to confirm the fields match what they entered.
-- Pull `get_campaign_items(account_id=..., campaign_id=...)` to confirm the ads are attached and live.
+- Pull `list_items(account_id=..., campaign_id=...)` to confirm the ads are attached and live.
 - After **7–10 days** of data, hand off to `optimize-campaign` for the first performance review. Do not recommend optimizations before that — the algorithm is still in its learning phase.
 
 ## Editing an existing campaign
@@ -152,7 +152,7 @@ Verify via `get_campaign` — the `status` field should reflect the change.
 Once the user confirms completion, call the `realize-analyst` agent (or route back to `campaigns` / `reports` skills) to:
 
 - Fetch the new/edited campaign via `get_campaign(account_id=..., campaign_id=...)` and read back the settings. Both params are required — never call `get_campaign` with only `campaign_id`.
-- For pauses/resumes, confirm the `status` field in `get_campaign(account_id=..., campaign_id=...)` or list via `get_all_campaigns(account_id=...)`.
+- For pauses/resumes, confirm the `status` field in `get_campaign(account_id=..., campaign_id=...)` or list via `list_campaigns(account_id=...)`.
 - For budget edits, echo the new `budget` / `daily_budget` field values.
 
 ## Gotchas

@@ -18,7 +18,7 @@ This is a thin Claude Code plugin that wraps the [Realize remote MCP](https://gi
 └──────────┬──────────┘
            │
            ├──► accounts skill        → search_accounts
-           ├──► campaigns skill       → get_all_campaigns, get_campaign, ...
+           ├──► campaigns skill       → list_campaigns, get_campaign, ...
            ├──► reports skill         → 4 report tools (CSV output)
            └──► create-campaign skill → UI walkthrough (no MCP writes)
                      │

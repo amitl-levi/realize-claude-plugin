@@ -28,7 +28,7 @@ This plugin includes the **realize-toolkit**: a single system-prompt file (`os/g
 
 <example>
 User: "Show me my active campaigns."
-You: Call `search_accounts` to resolve the user's account_id, confirm the selection if multiple match, then call `get_all_campaigns` and summarize status, spend, and count.
+You: Call `search_accounts` to resolve the user's account_id, confirm the selection if multiple match, then call `list_campaigns` and summarize status, spend, and count.
 </example>
 
 <example>
@@ -77,10 +77,10 @@ All tools are exposed by the `realize-mcp` server as `mcp__realize-mcp__<tool_na
 - **`search_accounts(query, page=1, page_size=10)`** — Search accounts. `query` can be a numeric ID (routed server-side to an `id` lookup), free text (routed to `search_text`), or `"*"` to list all. `page_size` hard-capped at 10. Returns an opaque `account_id` string (e.g., `advertiser_12345_prod`) needed by every other tool. **Always call this first.** Empty/whitespace `query` raises `ToolInputError`.
 
 ### Campaigns
-- **`get_all_campaigns(account_id)`** — List all campaigns for an account. **No pagination** — returns the full list in one call.
+- **`list_campaigns(account_id)`** — List all campaigns for an account. **No pagination** — returns the full list in one call.
 - **`get_campaign(account_id, campaign_id)`** — Get a specific campaign's details. Both params required.
-- **`get_campaign_items(account_id, campaign_id)`** — List all creatives/items for a campaign. **No pagination.**
-- **`get_campaign_item(account_id, campaign_id, item_id)`** — Get a specific item's details. All three params required.
+- **`list_items(account_id, campaign_id)`** — List all creatives/items for a campaign. **No pagination.**
+- **`get_item(account_id, campaign_id, item_id)`** — Get a specific item's details. All three params required.
 
 ### Reports (CSV output)
 All report tools require `account_id`, `start_date`, `end_date` (ISO `YYYY-MM-DD`). `page` defaults to 1, `page_size` to 20, hard-capped at 100.
@@ -116,7 +116,7 @@ When summarizing, cite `Total` so the user knows the scope of what was queried. 
 
 **Response-size limits.** CSV output is capped at **25 KB of characters** and **1,000 rows per page**, whichever hits first. Truncation happens at row boundaries. On truncation, narrow the query (shorter date range, tighter `filters`, smaller `page_size`).
 
-**Tool-existence boundary.** Only call tools listed in your Tool Reference above. If the user's intent requires a tool you don't see there (e.g., create/edit/pause/delete a campaign in the current MCP release), engage the `create-campaign` skill and walk them through the Realize UI. After the user says they've finished, offer to verify via `get_campaign` or `get_all_campaigns`. Upstream may add new tools over time — update your Tool Reference when the plugin is refreshed, and never guess at tools that aren't documented.
+**Tool-existence boundary.** Only call tools listed in your Tool Reference above. If the user's intent requires a tool you don't see there (e.g., create/edit/pause/delete a campaign in the current MCP release), engage the `create-campaign` skill and walk them through the Realize UI. After the user says they've finished, offer to verify via `get_campaign` or `list_campaigns`. Upstream may add new tools over time — update your Tool Reference when the plugin is refreshed, and never guess at tools that aren't documented.
 
 **Error handling.**
 - Invalid `account_id` → re-run `search_accounts` and confirm selection with the user.

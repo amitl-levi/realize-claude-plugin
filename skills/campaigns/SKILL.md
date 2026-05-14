@@ -16,27 +16,27 @@ Inspection of campaigns and their items (creatives) for a given account using th
 
 | Tool | Required params | Paginated? |
 |---|---|---|
-| `mcp__realize-mcp__get_all_campaigns` | `account_id` | **No** — full list in one call |
+| `mcp__realize-mcp__list_campaigns` | `account_id` | **No** — full list in one call |
 | `mcp__realize-mcp__get_campaign` | `account_id`, `campaign_id` | — |
-| `mcp__realize-mcp__get_campaign_items` | `account_id`, `campaign_id` | **No** — full list in one call |
-| `mcp__realize-mcp__get_campaign_item` | `account_id`, `campaign_id`, `item_id` | — |
+| `mcp__realize-mcp__list_items` | `account_id`, `campaign_id` | **No** — full list in one call |
+| `mcp__realize-mcp__get_item` | `account_id`, `campaign_id`, `item_id` | — |
 
-None of these tools accept pagination or filter parameters. If a campaign has hundreds of items, they all come back in the single `get_campaign_items` call. Filter or summarize in post-processing rather than paginating.
+None of these tools accept pagination or filter parameters. If a campaign has hundreds of items, they all come back in the single `list_items` call. Filter or summarize in post-processing rather than paginating.
 
 ## Typical flows
 
 **"List my active campaigns."**
-1. `get_all_campaigns(account_id=...)`
+1. `list_campaigns(account_id=...)`
 2. Inspect the `status` field on each campaign and filter in memory to rows with an active/running status (the exact enum comes from the API response — e.g., `RUNNING`). Then summarize: count, combined spend, date range.
 
 **"What's the deal with campaign 98765?"**
 1. `get_campaign(account_id=..., campaign_id=98765)` for configuration and status.
-2. `get_campaign_items(account_id=..., campaign_id=98765)` for the creative list.
+2. `list_items(account_id=..., campaign_id=98765)` for the creative list.
 3. Summarize: objective, budget, targeting, creative count, any items flagged paused/rejected.
 
 **"Show me the creatives for my top-spending campaign."**
 1. Combine with the `reports` skill: run `get_top_campaign_content_report`, pick the top campaign.
-2. `get_campaign_items(account_id=..., campaign_id=<top>)` and list creatives with IDs, names, status.
+2. `list_items(account_id=..., campaign_id=<top>)` and list creatives with IDs, names, status.
 
 ## Interpretation guidelines
 

@@ -43,7 +43,7 @@ Manual QA checklist. Run each scenario against a real Realize test account and c
 
 **Expected behavior:**
 1. Claude reuses the cached `account_id` (does not re-run `search_accounts`).
-2. Calls `get_all_campaigns(account_id=...)`.
+2. Calls `list_campaigns(account_id=...)`.
 3. Filters to running/active campaigns by inspecting the `status` field (exact enum from the API response) and summarizes: count, combined spend, names of top few.
 
 **Pass criteria:** No duplicate `search_accounts` call; summary is prose, not raw JSON dump.
@@ -59,7 +59,7 @@ Manual QA checklist. Run each scenario against a real Realize test account and c
 
 **Expected behavior:**
 1. `get_campaign(account_id=..., campaign_id=<ID>)`.
-2. `get_campaign_items(account_id=..., campaign_id=<ID>)`.
+2. `list_items(account_id=..., campaign_id=<ID>)`.
 3. Summary includes: objective, budget, status, creative count, any paused/rejected items flagged.
 
 **Pass criteria:** Both tools are called; item-level status anomalies (if any) are surfaced.
