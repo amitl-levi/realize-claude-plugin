@@ -85,6 +85,7 @@ For self-hosted HTTP mode and full local deployment details, see the [realize-mc
 |---|---|
 | [`accounts`](skills/accounts/SKILL.md) | Find Realize accounts and capture the `account_id` every other tool needs |
 | [`campaigns`](skills/campaigns/SKILL.md) | List and inspect campaigns and their creatives |
+| [`discovery`](skills/discovery/SKILL.md) | Look up targeting metadata, audiences, publishers, conversion rules, time zones, and CTA types — resolves opaque IDs before campaign work |
 | [`reports`](skills/reports/SKILL.md) | Pull the four Realize performance reports and interpret the CSV output |
 | [`optimize-campaign`](skills/optimize-campaign/SKILL.md) | Diagnose underperforming campaigns against the toolkit's signal-quality thresholds (100+ clicks per item, daily spend ≥ 8× CPA goal, 7–10 day learning phase) and prescribe concrete UI actions |
 | [`create-campaign`](skills/create-campaign/SKILL.md) | Walk through the Realize UI setup flow (exact Marketing Objective enum, Bid Strategy × budget minimums, learning-phase defaults) for actions not yet exposed as MCP tools, plus MCP verification afterward |

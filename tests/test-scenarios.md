@@ -200,3 +200,79 @@ Manual QA checklist. Run each scenario against a real Realize test account and c
 2. Claude does **not** fabricate a narrative. Says explicitly: "No records found for 2015 — either no campaigns ran in that window or the account is newer than that."
 
 **Pass criteria:** Empty-result honesty; no hallucinated data.
+
+---
+
+## 12. Discovery — list audiences for an account
+
+**Prerequisite:** `account_id` resolved.
+
+**User prompt:**
+> "What audiences are available for this account?"
+
+**Expected behavior:**
+1. The `discovery` skill activates.
+2. Calls `search_audiences(account_id=...)` (no country filter unless the user supplied one).
+3. Summarizes top results in prose with `audience_id` alongside display name so they can be pasted into a campaign-creation flow.
+
+**Pass criteria:** `audience_id` values are surfaced verbatim (not coerced or re-cased); no `country_codes` filter is invented without the user asking for one.
+
+---
+
+## 13. Discovery — DMAs in a country
+
+**User prompt:**
+> "List all DMAs in the US."
+
+**Expected behavior:**
+1. The `discovery` skill activates.
+2. Recognizes that `search_geos(dimension="dma", ...)` requires `country_code`.
+3. Calls `search_geos(dimension="dma", country_code="US")`.
+4. Returns the DMA list with codes + names.
+
+**Pass criteria:** `country_code` is supplied as `US` (uppercase ISO-2), not `USA` or lowercase; tool is not called with `dimension="dma"` alone.
+
+---
+
+## 14. Discovery — publisher search with query
+
+**Prerequisite:** `account_id` resolved.
+
+**User prompt:**
+> "Show me publishers matching 'news' on this account."
+
+**Expected behavior:**
+1. The `discovery` skill activates.
+2. Calls `search_publishers(account_id=..., query="news")`.
+3. Returns up to `page_size` (default 10, cap 50) publishers with `id`, `name`, `country`, `is_active`.
+4. Offers pagination if the result is truncated.
+
+**Pass criteria:** `page_size` is not pushed above 50; `query="news"` is passed through verbatim (no wildcard injection).
+
+---
+
+## 15. Discovery — list time zones
+
+**User prompt:**
+> "What time zones does Realize support?"
+
+**Expected behavior:**
+1. The `discovery` skill activates.
+2. Calls `list_time_zones()` (no params).
+3. Returns the IANA names. Claude offers to filter to a region if the list is long.
+
+**Pass criteria:** No `account_id` is sent (this is a global catalog); output is summarized, not dumped raw.
+
+---
+
+## 16. Discovery — list CTA types
+
+**User prompt:**
+> "What CTA button options are available for native items?"
+
+**Expected behavior:**
+1. The `discovery` skill activates.
+2. Calls `list_cta_types()` (no params).
+3. Returns the enum values verbatim.
+
+**Pass criteria:** No `account_id` is sent; values are presented as the exact enum strings the user would paste into a campaign setup.

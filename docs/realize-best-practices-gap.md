@@ -32,16 +32,18 @@ This document serves three jobs, in order of size:
 
 ## Current MCP capability baseline
 
-The MCP exposes **11 tools at the current release**, all read-only:
+This plugin wires **18 read tools** from the upstream MCP, all read-only:
 
 | Area | Tools |
 |---|---|
 | Accounts | `search_accounts` |
-| Campaigns | `list_campaigns`, `get_campaign`, `list_items`, `get_item` |
+| Campaigns | `list_campaigns`, `get_campaign` |
+| Items | `list_items`, `get_item` |
+| Discovery | `search_geos`, `search_techno`, `search_audiences`, `search_lookalike_audiences`, `search_contextual_segments`, `search_publishers`, `search_conversion_rules`, `list_time_zones`, `list_cta_types` |
 | Reports (CSV) | `get_top_campaign_content_report`, `get_campaign_breakdown_report`, `get_campaign_history_report`, `get_campaign_site_day_breakdown_report` |
 | Auth (stdio only) | `get_auth_token`, `get_token_details` |
 
-No create, update, delete, pause, conversion-tracking, audience, or configuration tools.
+Upstream realize-mcp also exposes 4 write tools (`create_campaign`, `update_campaign`, `create_native_item`, `update_native_item`). **This plugin revision intentionally does not enable them** — see Part 3 for the catalog of write capabilities routed through the `create-campaign` UI walkthrough.
 
 ---
 
