@@ -7,7 +7,7 @@ Thanks for your interest in improving the Realize Claude Plugin. Contributions o
 - Be respectful and follow our [Code of Conduct](CODE_OF_CONDUCT.md).
 - This plugin wraps the [Realize remote MCP](https://github.com/taboola/realize-mcp). If your change needs a new MCP tool or a behavioral change on the server side, open an issue on the MCP repo first.
 - Do not add direct API calls to Realize from this plugin (no `curl`, no `httpx`). All data access flows through MCP tools — see [CLAUDE.md](CLAUDE.md) for the reasoning.
-- Do not add code paths that call MCP tools that don't exist in the current upstream release. User-facing requests for actions not yet exposed as MCP tools are handled by the `create-campaign` skill, which walks users through the Realize UI. When upstream adds new write tools, wire them through with an explicit PR and update the `create-campaign` skill rather than silently adding a write path.
+- Do not add code paths that call MCP tools that don't exist in the current upstream release. User-facing requests for actions not yet exposed as MCP tools (today: delete, duplicate, bulk operations) are handled by the `manage-campaigns` skill's UI fallback section. When upstream adds new write tools, wire them through `manage-campaigns` with an explicit PR — never route writes directly through the agent. New writes must inherit the tiered preview-then-confirm gate and the mandatory `▶ WRITE TARGET` account header.
 
 ## Before you start
 
@@ -19,7 +19,7 @@ Thanks for your interest in improving the Realize Claude Plugin. Contributions o
 1. Fork and branch from `main`.
 2. Make your change. Keep PRs focused — one change per PR.
 3. Update documentation:
-   - New skill? Add a row to the README's "Available Skills" table and at least one test scenario in `tests/test-scenarios.md`.
+   - New skill? Add a row to the README's "Available Skills" table and at least one test scenario in `tests/test-scenarios-read.md` (read-only paths) or `tests/test-scenarios-write.md` (destructive paths — include side effects + cleanup).
    - Changed behavior? Note it in `CHANGELOG.md` under the next unreleased version.
 4. Verify locally:
    - `python -m json.tool < .claude-plugin/plugin.json` (valid JSON)

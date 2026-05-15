@@ -43,7 +43,7 @@ This plugin wires **18 read tools** from the upstream MCP, all read-only:
 | Reports (CSV) | `get_top_campaign_content_report`, `get_campaign_breakdown_report`, `get_campaign_history_report`, `get_campaign_site_day_breakdown_report` |
 | Auth (stdio only) | `get_auth_token`, `get_token_details` |
 
-Upstream realize-mcp also exposes 4 write tools (`create_campaign`, `update_campaign`, `create_native_item`, `update_native_item`). **This plugin revision intentionally does not enable them** — see Part 3 for the catalog of write capabilities routed through the `create-campaign` UI walkthrough.
+Upstream realize-mcp also exposes 4 write tools (`create_campaign`, `update_campaign`, `create_native_item`, `update_native_item`). **As of 0.3.0 these are wired** through the `manage-campaigns` skill (preview-then-confirm gate, mandatory `▶ WRITE TARGET` account header). The skill also retains a UI fallback section for the capabilities still not exposed by MCP (delete, duplicate, bulk ops) — see Part 3 for that catalog.
 
 ---
 
@@ -53,17 +53,14 @@ Upstream realize-mcp also exposes 4 write tools (`create_campaign`, `update_camp
 
 | Best practice | Where it lives |
 |---|---|
-| Navigation path `Campaigns → +New → Campaign` | `create-campaign` Step 1 |
-| Required fields list | `create-campaign` Step 2 |
-| Marketing Objective enum (Reach / Engagement / Leads / Online Purchases / App Promotion) | `create-campaign` Step 3 |
-| Bid Strategy enum + budget minimums (10× CPA / 5× CPA daily + 150× monthly / 100–200 clicks/day) | `create-campaign` Step 4 |
-| 7–10 day learning phase | `create-campaign` Steps 5 & 10; `optimize-campaign`; agent responsibility #7 |
-| "Stay broad at launch" targeting guidance | `create-campaign` Step 5 |
-| "Leave blocklists / brand safety clear initially" | `create-campaign` Step 6 |
-| Audience targeting (skip for new; use suppression) | `create-campaign` Step 7 |
-| 4–6 ads per campaign (never more than 10); "pre-qualify the click"; avoid generic CTAs | `create-campaign` Step 8 |
-| Dynamic Keyword Insertion mention | `create-campaign` Step 8 |
-| Post-launch MCP verification via `get_campaign` + `list_items` | `create-campaign` Step 10 |
+| Navigation path `Campaigns → +New → Campaign` | `manage-campaigns` UI fallback (delete/duplicate only — create now MCP-backed) |
+| Required fields list | `manage-campaigns` "Creating a campaign" — Required fields table |
+| Marketing Objective enum (5-value: `BRAND_AWARENESS` / `DRIVE_WEBSITE_TRAFFIC` / `LEADS_GENERATION` / `ONLINE_PURCHASES` / `MOBILE_APP_INSTALL`) | `manage-campaigns` "Creating a campaign" — Marketing Objective enum |
+| Bid Strategy enum + budget minimums (10× CPA / 5× CPA daily + 150× monthly / 100–200 clicks/day) | `manage-campaigns` "Creating a campaign" — Bid Strategy × Budget minimums |
+| 7–10 day learning phase | `manage-campaigns` Gotchas; `optimize-campaign`; agent Core Responsibility |
+| "Stay broad at launch" targeting guidance | `manage-campaigns` "Creating a campaign" — Targeting recommendation |
+| 4–6 ads per campaign (never more than 10); "pre-qualify the click"; avoid generic CTAs | `manage-campaigns` "Creating a native item"; cross-referenced in `optimize-campaign` |
+| Post-launch MCP verification via `get_campaign` + `list_items` | `manage-campaigns` "Post-write verification" |
 
 ### From "How to Improve Campaign Performance"
 
@@ -87,8 +84,8 @@ Items where existing skill content is **factually inaccurate** against the sourc
 
 | File | Current wording | Correction | Source |
 |---|---|---|---|
-| `create-campaign/SKILL.md` — review cycle | "24–48 hours" | Target: **"one business day"**; some reviews take longer; no expedited option; contact is `support@taboola.com` or the user's Account Manager | [Campaign Review Process](https://www.taboola.com/help/en/articles/3878200-campaign-review-process) |
-| `create-campaign/SKILL.md` — review outcomes | Implies binary approved/rejected | Three outcomes: **Fully launched** (all items ready), **Partially launched** (≥1 item running), **Rejected** (none running) | Campaign Review Process |
+| `manage-campaigns/SKILL.md` — review cycle | "24–48 hours" | Target: **"one business day"**; some reviews take longer; no expedited option; contact is `support@taboola.com` or the user's Account Manager | [Campaign Review Process](https://www.taboola.com/help/en/articles/3878200-campaign-review-process) |
+| `manage-campaigns/SKILL.md` — review outcomes | Implies binary approved/rejected | Three outcomes: **Fully launched** (all items ready), **Partially launched** (≥1 item running), **Rejected** (none running) | Campaign Review Process |
 These two corrections are the only suggested edits to existing skill files. (A third correction — creative variations count — has been applied: skills now align with the toolkit's `3 distinct titles + 3 unique images per campaign` rather than the official A/B testing article's `4–6 titles + similar images per URL`. Toolkit treated as authoritative on this point.) Everything else discovered during this review is cataloged under **Part 3** as a future ability of the MCP, not as skill content.
 
 ---
@@ -187,7 +184,7 @@ The Landing Page Best Practices article is largely infographic-based and thin on
 1. Record the new tool in the agent's Tool Reference (`agents/realize-analyst.md`).
 2. Route it into the most appropriate skill (or create a new skill if the capability is its own concern — e.g., a new `conversion-tracking` skill would be the natural home if `get_pixel_status` and `list_conversions` land together).
 3. Move the row out of Part 3 and into Part 1 ("What we took"), noting the release that added it.
-4. Add a scenario to `tests/test-scenarios.md` exercising the new path.
+4. Add a scenario to `tests/test-scenarios-read.md` (read-only paths) or `tests/test-scenarios-write.md` (destructive paths) exercising the new path.
 5. Open a dedicated PR — never silently add a write path.
 
 ### When a Part 2 correction is applied

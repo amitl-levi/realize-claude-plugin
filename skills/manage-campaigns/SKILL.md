@@ -1,0 +1,290 @@
+---
+name: manage-campaigns
+description: Create and update Realize campaigns and native items via the Realize MCP write tools. Activates on any write-intent request — create, edit, pause/resume, launch, budget changes, bid changes, targeting edits, creative swaps. Enforces a tiered preview-then-confirm pattern with a mandatory account-identity header on every confirmation so the user always sees which account is being mutated. Falls back to a UI reference for actions the MCP does not currently expose (delete, duplicate, bulk operations). Grounded in the realize-toolkit's setup guidance and Taboola's official setup guide for the input-validation heuristics (Marketing Objective enum, Bid Strategy × budget minimums, learning-phase defaults).
+allowed-tools: ["Read", "Bash", "AskUserQuestion"]
+---
+
+# Manage Campaigns
+
+Writes for Realize campaigns and native items via MCP. Every destructive call is gated behind a preview and an explicit user confirmation; the preview always identifies the target account by name and opaque `account_id`. This skill is the only place in the plugin that calls the MCP write tools.
+
+## When to use
+
+Trigger on any of: *create, make, set up, launch, edit, update, change, pause, resume, duplicate, clone, delete, remove, bump the budget, raise the bid, lower CPC, swap the creative, add an ad, add a creative, target X, exclude Y*.
+
+If the user is *asking* about a campaign rather than changing it, route to the `campaigns` skill (reads only). If the user is *diagnosing* performance, route to `optimize-campaign` — that skill hands write prescriptions back here.
+
+## Prerequisites
+
+- `account_id` resolved via the `accounts` skill. If missing, hand off there first.
+- For **updates**, the relevant `get_campaign` / `get_item` read MUST precede the write — both to render a diff preview and (for `update_campaign` targeting blocks) to merge client-side so the full-replace semantics do not wipe dimensions the user didn't mention.
+
+## Tools this skill wraps
+
+| Tool | Required params | Idempotent? | Notes |
+|---|---|---|---|
+| `mcp__realize-mcp__create_campaign` | `account_id`, `name`, `marketing_objective`, `branding_text`, `spending_limit_model`, `bid_strategy` | No | Atomic. Ships PAUSED unless `is_active=true`. 15 optional targeting blocks (full-replace within block). |
+| `mcp__realize-mcp__update_campaign` | `account_id`, `campaign_id` | Yes | **Scalars partial-merge**; **targeting blocks full-replace within a section**. At least one updatable field required. |
+| `mcp__realize-mcp__create_native_item` | `account_id`, `campaign_id`, `url`, `title`, `description`, `thumbnail_url` | No | Optional `branding_text`, `cta`. New items typically PENDING_APPROVAL → RUNNING. |
+| `mcp__realize-mcp__update_native_item` | `account_id`, `campaign_id`, `item_id` | Yes | At least one updatable field required. |
+
+For previews and merges, this skill also reads `mcp__realize-mcp__get_campaign` and `mcp__realize-mcp__get_item`.
+
+## Confirmation pattern (tiered)
+
+The skill never submits a write without first showing the user a preview and getting an explicit confirmation via `AskUserQuestion`. Tiers matched to risk:
+
+| Action | Preview tier |
+|---|---|
+| `create_campaign`, `create_native_item` | Full preview |
+| `update_campaign`, `update_native_item` (non-`is_active`) | Diff preview |
+| `update_native_item` (`is_active` toggle only) | One-line confirm |
+
+Three special cases layer on top: `update_campaign` touching a targeting block adds a full-replace warning; `update_native_item` runs a status check before previewing; `create_campaign` states the launch state explicitly. Detail in the workflow sections below.
+
+### Mandatory: `▶ WRITE TARGET` header on every confirmation
+
+Every preview block — including the one-line `is_active` confirm — MUST lead with this line, formatted exactly:
+
+```
+▶ WRITE TARGET: <account_name> (<account_id>)
+```
+
+The values come from the `search_accounts` result for the current session. Do not abbreviate the account name. Do not coerce or reformat the opaque `account_id`. Do not omit the header on the grounds that the account was mentioned earlier in the conversation — every individual write decision gets its own visible target. If the header would be missing, refuse to render the preview and re-resolve the account first.
+
+This is the only account-scope safeguard the skill enforces. No separate first-write gate is introduced; the per-write header is the chokepoint.
+
+### Confirmation flow shape
+
+```
+1. Resolve / validate inputs (including account_id via search_accounts).
+2. For updates: get_campaign or get_item to capture current state.
+3. Render the preview, leading with the ▶ WRITE TARGET header.
+4. Ask via AskUserQuestion: "Submit this write?" with options Yes / No / Edit.
+5. On Yes → call the write tool.
+6. On No → drop the change; do not silently retry.
+7. On Edit → restart input collection from step 1 with the edited values.
+```
+
+Never submit a write tool call before step 5. Never construct payloads from inferred or assumed values — every field comes from the user, from a read tool, or from validated defaults documented below.
+
+## Creating a campaign
+
+### 1. Collect inputs
+
+Use `AskUserQuestion` for any required field the user did not supply. Validate against the enums and rules below before constructing the payload.
+
+**Required fields:**
+
+| Field | Accepted values | Notes |
+|---|---|---|
+| `name` | Any text | Internal identifier. |
+| `marketing_objective` | `BRAND_AWARENESS`, `DRIVE_WEBSITE_TRAFFIC`, `LEADS_GENERATION`, `ONLINE_PURCHASES`, `MOBILE_APP_INSTALL` | See enum guidance below. |
+| `branding_text` | Any text | Shown publicly under each item — "site name or product you're promoting". |
+| `spending_limit_model` | `NONE`, `MONTHLY`, `ENTIRE` | If `MONTHLY` or `ENTIRE`, `spending_limit` is also required. |
+| `bid_strategy` | `SMART`, `FIXED`, `TARGET_CPA`, `MAX_CONVERSIONS`, `MAX_VALUE` | Drives the budget minimums — see below. |
+
+**Common optional scalars:**
+
+| Field | Notes |
+|---|---|
+| `spending_limit`, `daily_cap` | In the account's default currency — pull via `search_accounts` before quoting amounts. |
+| `cpc`, `cpa_goal`, `cpc_cap` | In the account's default currency. |
+| `start_date`, `end_date` | ISO `YYYY-MM-DD`. |
+| `is_active` | Bool. Default behavior is PAUSED. See the **Create-with-launch flow** below. |
+| `daily_ad_delivery_model` | `BALANCED` (default; smooths spend across the day — forbids `daily_cap`) or `STRICT` (caps daily spend tightly — requires `daily_cap`). |
+| `traffic_allocation_mode` | `OPTIMIZED` or `EVEN`. |
+
+**Marketing Objective enum — user-facing descriptions** (use these when asking the user which to pick):
+
+- `BRAND_AWARENESS` — *"Increase awareness of your brand."*
+- `DRIVE_WEBSITE_TRAFFIC` — *"Increase user engagement and page views."*
+- `LEADS_GENERATION` — *"Drive leads such as email sign-ups."*
+- `ONLINE_PURCHASES` — *"Get people to buy your products."*
+- `MOBILE_APP_INSTALL` — *"Get people to install your app."*
+
+**Bid Strategy × Budget minimums** (Taboola-published; enforce before submitting):
+
+| Bid Strategy | Minimum daily budget |
+|---|---|
+| `MAX_CONVERSIONS` | **10× the CPA goal** per day (learning-phase stability with conversion optimization). |
+| `TARGET_CPA` | **5× the CPA goal** per day, with a **150× CPA monthly** minimum. |
+| `FIXED` | Per client requirements; no published Taboola minimum. |
+| `SMART`, `MAX_VALUE` | Per client requirements; surface the formula but don't block on a hard minimum unless the user supplies a CPA goal. |
+
+For non-conversion campaigns (objective = `BRAND_AWARENESS` / `DRIVE_WEBSITE_TRAFFIC`): target **100–200 clicks per day** as the minimum data volume. Budget = `cpc × desired_clicks_per_day`. Example: $0.50 CPC × 100–200 clicks/day → $50–$100/day.
+
+If the user supplies a budget below the relevant minimum, refuse the submission, write the math out loud (`$25 CPA × 10 = $250/day minimum`), and ask them to either raise the budget or pick a different bid strategy. Do not silently submit an under-funded campaign.
+
+**Targeting recommendation at launch:** Leave targeting broad on a fresh campaign — narrow only after real performance data exists. If the user pre-narrows aggressively, surface the toolkit's "stay broad at launch" guidance once and let the user override.
+
+### 2. Render preview and confirm
+
+```
+▶ WRITE TARGET: <account_name> (<account_id>)
+
+About to call create_campaign with:
+  name: "<name>"
+  marketing_objective: <enum>
+  branding_text: "<branding_text>"
+  spending_limit_model: <enum>
+  bid_strategy: <enum>
+  daily_cap: <amount> <currency>      # if supplied
+  cpa_goal: <amount> <currency>       # if supplied
+  cpc: <amount> <currency>            # if supplied
+  start_date: <YYYY-MM-DD>            # if supplied
+  end_date: <YYYY-MM-DD>              # if supplied
+  is_active: <true|false>
+  <targeting blocks, one per line if supplied>
+
+Launch state: <PAUSED until Realize approves → will not run until you explicitly set it active>
+            | <Will launch automatically once Realize approves (24–48h review)>
+```
+
+Then `AskUserQuestion`: "Submit this `create_campaign` call?" Options: Yes / Edit / Cancel.
+
+### 3. Submit and verify
+
+On Yes, call `create_campaign`. The response includes the new `campaign_id` and the full campaign state. Echo the `campaign_id` back to the user and remind them that any edit (including the launch toggle, if PAUSED) re-enters the 24–48 hour review queue. Offer to call `get_campaign` after the review window to confirm the API-of-record state.
+
+## Create-with-launch flow
+
+Default is PAUSED. Set `is_active=true` only when the user *explicitly* says so — phrases like "launch it", "set it active", "go live", "start it running". When that intent is present:
+
+- Include `is_active=true` in the create payload.
+- The preview's launch-state line MUST surface the launch intent: *"Will launch automatically once Realize approves (24–48h review)."*
+- The `AskUserQuestion` prompt must explicitly call out the launch — e.g., "Submit this `create_campaign` call? (The campaign will start running automatically once Realize approves it — 24–48h review.)"
+
+If the user did not explicitly say to launch, set `is_active=false` (or omit, since PAUSED is the API default) and surface the PAUSED state in the preview. After the create succeeds, you may offer the launch as a follow-up: *"Want me to set it active now via `update_campaign(is_active=true)`?"* — that's a separate write with its own confirmation gate.
+
+## Updating a campaign
+
+### Scalars only (e.g., budget bump, bid change, name change)
+
+1. Resolve `account_id`, `campaign_id`.
+2. Call `get_campaign` to capture current state.
+3. Render diff preview:
+   ```
+   ▶ WRITE TARGET: <account_name> (<account_id>)
+
+   About to call update_campaign on campaign_id=<id> ("<name>") with:
+     <field>: <old> → <new>
+     <field>: <old> → <new>
+   ```
+4. `AskUserQuestion`: "Submit this `update_campaign` call?" Yes / Edit / Cancel.
+5. On Yes, call `update_campaign`. Echo the response. Remind that the edit re-enters the 24–48h review.
+
+### Targeting blocks (geo, device, OS, browser, connection, audience, lookalike, contextual, publisher, dayparting, conversion-rules)
+
+The full-replace gotcha: each targeting block is partial-merge at the section level (sending `region_country_targeting` alone does not affect `country_targeting`), but **within** a section, the values are full-replace — sending `country_targeting={include:['CA']}` *replaces* the include list with `['CA']` and deletes everything else.
+
+Mandatory pattern:
+
+1. Resolve `account_id`, `campaign_id`.
+2. Call `get_campaign` and **read the current targeting block** the user wants to touch.
+3. Merge the user's change into the current list client-side. Examples:
+   - "Also target Canada" with current `country_targeting.include=['US']` → merged value `['US','CA']`.
+   - "Remove Florida" with current `region_country_targeting.include=['FL','TX','NY']` → merged value `['TX','NY']`.
+4. Render the preview with the full-replace warning:
+   ```
+   ▶ WRITE TARGET: <account_name> (<account_id>)
+
+   About to call update_campaign on campaign_id=<id> ("<name>").
+
+   ⚠ Targeting full-replace — this overwrites the entire <block> section.
+   Current <block>: [ ... ]
+   After update:    [ ... ]
+   ```
+5. `AskUserQuestion`: "Submit this `update_campaign` call?" Yes / Edit / Cancel.
+6. On Yes, call `update_campaign` with the FULL merged block.
+
+Never construct a targeting block payload without rendering the side-by-side `Current → After update` view in the preview — the user catches accidental deletions there.
+
+## Creating a native item
+
+1. Resolve `account_id`, `campaign_id` (the item attaches to an existing campaign).
+2. Collect required fields via `AskUserQuestion`: `url`, `title`, `description`, `thumbnail_url`. Optional: `branding_text` (inherits from campaign if omitted), `cta` (look up valid values via the `discovery` skill → `list_cta_types`).
+3. Render the preview:
+   ```
+   ▶ WRITE TARGET: <account_name> (<account_id>)
+
+   About to call create_native_item on campaign_id=<id> ("<campaign_name>") with:
+     title: "<title>"
+     url: "<url>"
+     thumbnail_url: "<thumbnail_url>"
+     description: "<description>"
+     cta: <cta>                # if supplied
+     branding_text: "<...>"    # if supplied
+   ```
+4. `AskUserQuestion` → submit on Yes.
+5. After the call, the response contains the new `item_id` and typical initial status `PENDING_APPROVAL`. Offer to verify via `get_item` once review completes.
+
+## Updating a native item
+
+Status gates which fields can be edited. The skill enforces this before previewing:
+
+```
+1. Resolve account_id, campaign_id, item_id.
+2. Call get_item(account_id, campaign_id, item_id).
+3. Inspect item.status:
+   - REJECTED → refuse: "This item is REJECTED — Realize will not accept edits.
+                Want me to create a replacement item via create_native_item instead?"
+                Stop here.
+   - RUNNING or PAUSED → only is_active + minor metadata are editable.
+     If the user's requested change touches title / url / description / thumbnail / cta:
+       refuse the substantive edit. Offer the alternative:
+         a) toggle the existing item to is_active=false via update_native_item,
+         b) create a replacement via create_native_item.
+   - PENDING_APPROVAL → all fields editable; proceed.
+4. Render preview tier appropriate to the change:
+   - is_active toggle only → one-line confirm:
+     "▶ WRITE TARGET: <account_name> (<account_id>) — Pause item <id> ('<title>')? [y/N]"
+   - non-is_active edits → full diff preview as in the scalar-update pattern above.
+5. AskUserQuestion → submit on Yes.
+```
+
+For `update_native_item` arrays (`verification_pixel`, `viewability_tag`): the array fields are full-replace within their section. To edit one entry, read with `get_item`, modify locally, send the merged result.
+
+## Post-write verification
+
+Every write changes a resource that needs Realize approval (24–48 hours) before it goes live. After any successful write, offer the verification step:
+
+- Pull `get_campaign(account_id, campaign_id)` to confirm the API-of-record matches the preview the user approved. Both params required — never call `get_campaign` with only `campaign_id`.
+- Pull `list_items(account_id, campaign_id)` to confirm new/updated items are attached.
+- For pauses/resumes, confirm the `status` field on the campaign or `is_active` on the item.
+
+If `get_campaign` returns the prior state immediately after a save, wait a minute and retry once — there can be brief lag between the write and read paths.
+
+## UI fallback — actions the MCP does not expose
+
+These remain Realize-UI-only. Do not fabricate tools for them.
+
+### Delete a campaign
+
+Realize UI → Campaigns → row's overflow menu (⋯) → **Delete**.
+
+For most "remove this" intents, the MCP-supported alternative is `update_campaign({is_active: false})` — the campaign stops running but is preserved. Offer that path first; only direct the user to the UI for true deletion.
+
+### Duplicate a campaign
+
+Realize UI → Campaigns → row's overflow menu (⋯) → **Duplicate** → edit the copy's name, budget, targeting → **Continue**.
+
+The duplicated campaign re-enters the 24–48 hour review.
+
+### Bulk operations
+
+Multi-select pause/resume/edit operations on the Campaigns or Items list are UI-only. The MCP write tools handle one entity at a time. For "pause everything except X", surface that there's no batch API and offer to either (a) script the per-entity calls one by one (each gets its own confirmation) or (b) point the user to the UI for the bulk action.
+
+## Gotchas
+
+- **Never pretend a write happened.** If the model is unsure whether a write completed (network blip, ambiguous response), do not claim success. Re-read via `get_campaign` / `get_item` and surface what's actually there.
+- **Never submit a write before the `AskUserQuestion` gate.** No "I'll just create it and confirm afterward." The confirmation is the safeguard; bypassing it is the trust-breaker.
+- **Never omit the `▶ WRITE TARGET` header.** It is the only account-scope safeguard. Missing header → refuse to render the preview and re-resolve the account.
+- **Never bypass the Bid Strategy × Budget minimums.** A $10/day campaign with a $20 CPA goal will waste the $10 — Taboola published those minimums because below them the algorithm cannot stabilize.
+- **Never narrow targeting at launch to "focus on the right users".** It's the opposite of Taboola's guidance — narrow only after data shows which segments underperform.
+- **Never coerce opaque IDs.** `account_id`, `campaign_id`, and `item_id` come from the API as strings. Pass them through verbatim — no numeric casting, no re-casing, no stripping.
+- **Always source currency from `search_accounts`.** Monetary scalars (`daily_cap`, `cpc`, `cpa_goal`, etc.) are in the account's default currency. Do not assume USD.
+- **`update_campaign` targeting touches MUST be preceded by `get_campaign`.** Full-replace semantics mean a partial block silently deletes the dimensions the user didn't mention.
+- **`update_native_item` is status-gated.** Skipping the `get_item` status check risks attempting an edit that the server will reject (REJECTED items) or accept but fail to apply (RUNNING/PAUSED items receiving non-`is_active` fields, depending on the field).
+- **Review cycle applies to edits, not just creation.** Every successful write re-enters the 24–48 hour review queue. Set that expectation in the post-write message.
+- **Data may lag briefly** in MCP results after a write. If `get_campaign` returns the prior state right after a save, wait a minute and retry once — once.

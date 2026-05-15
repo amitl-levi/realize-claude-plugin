@@ -1,6 +1,8 @@
-# Test Scenarios
+# Test Scenarios — Reads
 
-Manual QA checklist. Run each scenario against a real Realize test account and confirm the expected behavior. Scenarios are roughly ordered from simplest to most involved; later ones depend on state established by earlier ones (a resolved `account_id`, a known campaign, etc.).
+Manual QA checklist for the plugin's read-only paths. These scenarios are safe against any account — no side effects, no state mutation. For destructive paths, see [`test-scenarios-write.md`](./test-scenarios-write.md), which requires the team's designated test account.
+
+Scenarios are roughly ordered from simplest to most involved; later ones depend on state established by earlier ones (a resolved `account_id`, a known campaign, etc.).
 
 ---
 
@@ -121,25 +123,7 @@ Manual QA checklist. Run each scenario against a real Realize test account and c
 
 ---
 
-## 9. Write-intent request → create-campaign skill
-
-**User prompt:**
-> "Create a new Online Purchases campaign with a $25 CPA target."
-
-**Expected behavior:**
-1. The `create-campaign` skill activates.
-2. Claude states up-front that no MCP tool currently exists for creating a campaign, and offers to walk the user through the Realize UI instead.
-3. Asks for the required fields from Taboola's setup guide: **Campaign Name**, **Branding Text**, **Marketing Objective** (offers the 5-value enum: Reach / Engagement / Leads / Online Purchases / App Promotion), **Bid Strategy** (Maximize Conversions / Enhanced CPC / Fixed Bid), and Budget.
-4. Applies the bid-strategy budget rule: for **Maximize Conversions** with a $25 CPA target, recommends **≥$250/day** (10× CPA). For Enhanced CPC / Fixed Bid, recommends **≥$125/day** (5× CPA) with a $3,750 monthly minimum (150× CPA).
-5. Walks through the UI navigation path `Campaigns → +New → Campaign`, covering the required and optional sections, and recommends **leaving targeting / audiences / blocklists broad** at launch (per official guide).
-6. Calls out the **24–48 hour review** and the **7–10 day learning phase** before offering a follow-up optimization.
-7. Offers to verify via `get_campaign(account_id=..., campaign_id=...)` once the campaign clears review.
-
-**Pass criteria:** **Claude does not fabricate a tool call for an action the MCP doesn't support.** Budget minimums are enforced against the CPA target (not guessed). Targeting guidance matches the official "stay broad at launch" recommendation. The 24–48 hr review and 7–10 day learning phase are both surfaced.
-
----
-
-## 9a. Optimization request — adequate data
+## 9. Optimization request — adequate data
 
 **Prerequisite:** A campaign with at least two items, one with ≥500 clicks and clearly worse CVR than its siblings.
 
@@ -158,7 +142,7 @@ Manual QA checklist. Run each scenario against a real Realize test account and c
 
 ---
 
-## 9b. Optimization request — insufficient data (learning phase)
+## 9a. Optimization request — insufficient data (learning phase)
 
 **Prerequisite:** A campaign <7 days old, or one with <500 total clicks.
 
@@ -276,3 +260,4 @@ Manual QA checklist. Run each scenario against a real Realize test account and c
 3. Returns the enum values verbatim.
 
 **Pass criteria:** No `account_id` is sent; values are presented as the exact enum strings the user would paste into a campaign setup.
+

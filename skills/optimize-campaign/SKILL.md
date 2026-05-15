@@ -1,6 +1,6 @@
 ---
 name: optimize-campaign
-description: Diagnose an underperforming Realize campaign and prescribe fixes grounded in the realize-toolkit's operational guidance and Taboola's official optimization playbook. Uses MCP read tools to pull the data, then recommends adjustments — creative rotation, bid changes, targeting, site blocklists, budget reallocation — that the user applies in the Realize UI since MCP currently does not expose write tools. Activates on "why is this campaign underperforming?", "how do I improve CPA?", "what should I pause?", "my CTR is dropping", etc.
+description: Diagnose an underperforming Realize campaign and prescribe fixes grounded in the realize-toolkit's operational guidance and Taboola's official optimization playbook. Uses MCP read tools to pull the data, then recommends adjustments — creative rotation, bid changes, targeting, site blocklists, budget reallocation. Hands off to `manage-campaigns` to apply the change via MCP (with a preview-then-confirm gate), except for site blocks and structural rebuilds which remain UI-only. Activates on "why is this campaign underperforming?", "how do I improve CPA?", "what should I pause?", "my CTR is dropping", etc.
 allowed-tools: ["Read", "Bash", "AskUserQuestion"]
 ---
 
@@ -17,7 +17,7 @@ Trigger on any of:
 - "Which creatives / sites / regions are hurting me?"
 - "Should I raise my bid?" / "Is my budget too low?"
 
-If the user asks to *create* a new campaign, route to the `create-campaign` skill instead.
+If the user asks to *create* a new campaign — or to apply any of the prescriptions below (pause an item, bump a budget, change a bid, edit targeting) — route to the `manage-campaigns` skill, which calls the MCP write tools behind a preview-then-confirm gate.
 
 ## Prerequisites
 
@@ -66,17 +66,17 @@ Taboola's article emphasizes that *user experiences and behaviors differ across 
 
 ### 4. Prescribe — and name the action
 
-The MCP currently has no write tools, so every prescription is a **user action in the Realize UI**. Be explicit about what they should change and where:
+Most prescriptions can now be applied via the `manage-campaigns` skill (MCP-backed, preview-then-confirm). The remaining few are still UI-only. Be explicit about which:
 
-- **Pause a low-performing item** — Campaigns → open the campaign → Campaign Inventory → toggle the item's status.
-- **Raise CPC / adjust bid** — Campaigns → open the campaign → Bidding.
-- **Increase daily budget** — Campaigns → open the campaign → Budget.
-- **Add creative variations** — Campaigns → Campaign Inventory → **+New Item** (recommended: 3 distinct titles + 3 unique images per campaign; 4–6 items per campaign for algorithm testing, never more than 10).
-- **Block a site** — Campaigns → open the campaign → Advanced Options → Block Sites.
-- **Tighten targeting** — Campaigns → open the campaign → Location / Platform / Audiences.
-- **Isolate a top performer** — create a new campaign containing only the winning item(s) at an optimized CPC so you control its bid/budget independently.
+- **Pause a low-performing item** — hand off to `manage-campaigns` → `update_native_item(is_active=false)`.
+- **Raise CPC / adjust bid** — hand off to `manage-campaigns` → `update_campaign` (relevant bid scalar).
+- **Increase daily budget** — hand off to `manage-campaigns` → `update_campaign(daily_cap=…)` or the budget scalar the campaign uses.
+- **Add creative variations** — hand off to `manage-campaigns` → `create_native_item` for each new creative (recommended: 3 distinct titles + 3 unique images per campaign; 4–6 items per campaign for algorithm testing, never more than 10).
+- **Tighten targeting** — hand off to `manage-campaigns` → `update_campaign` with the relevant targeting block. (The skill will pull the current campaign first, merge client-side, and surface a full-replace warning before submitting — accidental targeting wipes are a real risk on this path.)
+- **Block a site** — **Realize UI** — Campaigns → open the campaign → Advanced Options → Block Sites. Not yet exposed as an MCP tool.
+- **Isolate a top performer** — hand off to `manage-campaigns` → `create_campaign` for a new campaign containing only the winning item(s) at an optimized CPC, so you control its bid/budget independently.
 
-After the user says they've made the change, offer to re-verify: pull `get_campaign` / `list_items` to confirm the new state, or re-run the relevant report after a data window (typically another 3–7 days).
+After the user applies the change (whether via `manage-campaigns` or the UI), offer to re-verify: pull `get_campaign` / `list_items` to confirm the new state, or re-run the relevant report after a data window (typically another 3–7 days).
 
 ## Prescription rules — quick reference
 
@@ -102,6 +102,6 @@ Condition-action rules from the official playbook:
 
 - **Don't optimize against a too-small sample.** Below 100 clicks per item, or daily spend below 8× CPA goal, the numbers are noise. Say so rather than prescribing.
 - **Don't just raise the bid to fix CPA.** The official playbook is explicit: raising CPC expands volume, but if conversion isn't working you'll spend more to acquire equally-bad users. Fix the creative or landing page first.
-- **Don't hallucinate a pause tool.** The MCP has no write tools today — every pause / bid change / creative swap is a user action in the Realize UI. Name the exact UI path and wait for the user to confirm before re-verifying.
+- **Don't apply writes from inside this skill.** Diagnosis lives here; application lives in `manage-campaigns`. Hand off cleanly — don't construct write payloads in this skill or call write tools directly. The `manage-campaigns` confirmation gate (with its `▶ WRITE TARGET` header) is the single chokepoint for every destructive call.
 - **Respect the learning phase.** Campaigns under 7–10 days old haven't established a baseline; major changes now will reset the algorithm's learning.
 - **Changes need time to manifest.** After the user applies a change, wait 3–7 days of fresh data before judging the new state. Don't re-diagnose the next hour.

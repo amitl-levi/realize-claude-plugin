@@ -4,6 +4,26 @@ All notable changes to this plugin will be documented here. Format loosely follo
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-05-15
+
+### Added
+- Wired the 4 upstream MCP write tools (`create_campaign`, `update_campaign`, `create_native_item`, `update_native_item`) via the new `manage-campaigns` skill. Plugin can now create and update campaigns and native items directly from natural language — no UI walkthrough required for the common write paths.
+- Tiered preview-and-confirm pattern for destructive writes. Every preview block (all tiers) leads with a mandatory `▶ WRITE TARGET: <account_name> (<account_id>)` header so the user always sees which account is being mutated before approving. Lighter one-line confirm reserved for the lowest-risk path (item `is_active` toggles).
+- Mandatory `get_campaign` pre-read on any `update_campaign` call that touches a targeting block (geo / device / OS / browser / connection / audience / lookalike / contextual / publisher / dayparting / conversion-rules). Skill merges client-side and renders `Current X → After update X` in the preview so the targeting full-replace semantics can't accidentally wipe dimensions the user didn't mention.
+- Item-update status gating in `update_native_item` flow: REJECTED items are refused with a recreate-instead suggestion; RUNNING/PAUSED items accept only `is_active` + minor metadata; PENDING_APPROVAL items are fully editable.
+- Create-with-launch flow: when the user explicitly says "and launch it" / "set it active", `is_active=true` is included in the `create_campaign` payload and the preview surfaces the launch intent in the same confirm gate. Default remains PAUSED when launch intent is not stated.
+
+### Changed
+- Agent `realize-analyst` Tool Reference: new **Writes** subsection documenting the 4 write tools with `destructiveHint` / idempotency posture. "Tool-existence boundary" paragraph rewritten — no longer excludes writes; routes them through `manage-campaigns`. Core Responsibility #6 rewritten from "refuse write operations" to "route write operations to manage-campaigns" while preserving the never-fabricate guarantee.
+- `campaigns` skill: read-only, with a one-line cross-link directing write intent to `manage-campaigns`.
+- `optimize-campaign` skill: prescriptions for pause / bid / budget changes now cross-link to `manage-campaigns` for the MCP-backed application step. Site blocklists, creative variations, and structural rebuilds remain UI actions.
+- README "Available Skills" table: `create-campaign` row replaced with `manage-campaigns`. Scope blurb updated — the plugin now does read + write campaign/item management, with a UI fallback retained only for delete / duplicate / bulk ops.
+- `tests/test-scenarios.md` split into two files: `tests/test-scenarios-read.md` (read-only paths; safe against any account) and `tests/test-scenarios-write.md` (destructive paths; require explicit test-account opt-in with per-scenario side effects and cleanup). The writes file opens with a banner clarifying that Realize has no non-prod environment; testers must name the team's designated prod test account at the start of the run. Filename itself is part of the safeguard.
+
+### Removed
+- The `create-campaign` skill is renamed to `manage-campaigns`. The UI walkthrough survives, trimmed, as a fallback reference inside the new skill for **delete**, **duplicate**, and **bulk operations** — the only campaign/item actions the MCP still does not expose.
+- The 0.2.0 "Not in scope" note disclaiming the 4 write tools — now in scope.
+
 ## [0.2.0] — 2026-05-14
 
 ### Added

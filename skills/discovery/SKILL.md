@@ -63,7 +63,7 @@ For pulling **performance numbers**, route to the `reports` skill instead. For c
    - `search_geos` with `dimension` in {`regions`, `dma`, `cities`, `postal_codes`} requires `country_code` — ask the user for it before calling, or default to the user's stated geo if obvious.
    - `search_techno` with `dimension=operating_system_versions` requires `os_family` (e.g., `Windows`, `iOS`, `Android`, `macOS`).
 4. **Summarize in prose, not raw JSON.** Pick the 3–5 most relevant rows, surface IDs alongside display names so the user can paste them downstream. If the list is long, offer to filter or paginate.
-5. **Hand off the ID downstream.** When the user is mid-walkthrough in the `create-campaign` skill, return the opaque ID(s) and let the walkthrough continue.
+5. **Hand off the ID downstream.** When the user is mid-flow in the `manage-campaigns` skill (collecting create/update inputs), return the opaque ID(s) verbatim so they can be slotted into the write payload before the preview-and-confirm step.
 
 ## Gotchas
 
