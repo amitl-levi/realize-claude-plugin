@@ -1,12 +1,14 @@
 ---
 name: manage-campaigns
-description: Create and update Realize campaigns and native items via the Realize MCP write tools. Activates on any write-intent request — create, edit, pause/resume, launch, budget changes, bid changes, targeting edits, creative swaps. Enforces a tiered preview-then-confirm pattern with a mandatory account-identity header on every confirmation so the user always sees which account is being mutated. Falls back to a UI reference for actions the MCP does not currently expose (delete, duplicate, bulk operations). Grounded in the realize-toolkit's setup guidance and Taboola's official setup guide for the input-validation heuristics (Marketing Objective enum, Bid Strategy × budget minimums, learning-phase defaults).
+description: Create and update Realize campaigns and native + display items via the Realize MCP write tools. Activates on any write-intent request — create, edit, pause/resume, launch, budget changes, bid changes, targeting edits, creative swaps. Enforces a tiered preview-then-confirm pattern with a mandatory account-identity header on every confirmation so the user always sees which account is being mutated. Falls back to a UI reference for actions the MCP does not currently expose (delete, duplicate, bulk operations). Grounded in the realize-toolkit's setup guidance and Taboola's official setup guide for the input-validation heuristics (Marketing Objective enum, Bid Strategy × budget minimums, learning-phase defaults).
 allowed-tools: ["Read", "Bash", "AskUserQuestion"]
 ---
 
 # Manage Campaigns
 
-Writes for Realize campaigns and native items via MCP. Every destructive call is gated behind a preview and an explicit user confirmation; the preview always identifies the target account by name and opaque `account_id`. This skill is the only place in the plugin that calls the MCP write tools.
+Writes for Realize campaigns and native + display items via MCP. Every destructive call is gated behind a preview and an explicit user confirmation; the preview always identifies the target account by name and opaque `account_id`. This skill is the only place in the plugin that calls the MCP write tools.
+
+**Depth:** the full field-by-field MCP write-surface reference (every scalar on `create_campaign`, every field on `create_native_item` / `create_display_item`, per-strategy bid-lever gates, common payload patterns, failure modes) lives in `references/mcp-write-surface.md`. Read it when a payload needs detailed field coverage or when debugging a write rejection.
 
 ## When to use
 
@@ -27,8 +29,29 @@ If the user is *asking* about a campaign rather than changing it, route to the `
 | `mcp__realize-mcp__update_campaign` | `account_id`, `campaign_id` | Yes | **Scalars partial-merge**; **targeting blocks full-replace within a section**. At least one updatable field required. |
 | `mcp__realize-mcp__create_native_item` | `account_id`, `campaign_id`, `url`, `title`, `description`, `thumbnail_url` | No | Optional `branding_text`, `cta`. New items typically PENDING_APPROVAL → RUNNING. |
 | `mcp__realize-mcp__update_native_item` | `account_id`, `campaign_id`, `item_id` | Yes | At least one updatable field required. |
+| `mcp__realize-mcp__create_display_item` | `account_id`, `campaign_id`, `url`, `creative_name`, plus either `ad_tag` (3P JS) or `asset_url` + `dimensions` (1P-hosted) | No | Locks campaign as Display on first call when `pricing_model=CPC`. 3P tags must match the validator allowlist (no `<!DOCTYPE>` / `<html>` wrapper). |
+| `mcp__realize-mcp__update_display_item` | `account_id`, `campaign_id`, `item_id` | Yes | At least one updatable field required. Arrays like `verification_pixel` are full-replace. |
 
 For previews and merges, this skill also reads `mcp__realize-mcp__get_campaign` and `mcp__realize-mcp__get_item`.
+
+### Pricing model picks the campaign type — locked at creation
+
+A campaign's ad type (Native vs Display) is locked at creation and cannot be switched later. Two MCP paths:
+
+- **`pricing_model=CPC`** (standard, the default) — type stays undetermined until the **first item-creation call**. `create_native_item` locks the campaign as Native; `create_display_item` locks it as Display. Mixing item types under one campaign is rejected.
+- **`pricing_model=VCPM`** (alternate, Display only) — locks the campaign as Display at the `create_campaign` call itself.
+
+If the user wants Display, ask which path before creating: VCPM lock-in vs CPC-with-Display-item-first. If they don't care, default to `pricing_model=CPC` and call `create_display_item` first.
+
+### Per-strategy bid-lever gates — refuse invalid combinations
+
+The MCP will accept invalid combinations silently (some fields are ignored on certain strategies). Refuse them at preview time instead:
+
+- `cpc` (scalar bid) — only on `bid_strategy=FIXED`.
+- `cpa_goal` — only on `bid_strategy=TARGET_CPA`.
+- `cpc_cap` — valid on all strategies (last-resort ceiling on `MAX_CONVERSIONS` / `TARGET_CPA` / `MAX_VALUE`; see `knowledge/bidding.md`).
+- `publisher_bid_modifier` — only on **Enhanced CPC** or **Fixed Bid**. On `MAX_CONVERSIONS` / `TARGET_CPA` / `MAX_VALUE`, the only per-publisher lever is **block / unblock / whitelist** via `publisher_targeting`. Surfacing a per-publisher bid move on those strategies is a forbidden pattern — re-frame as a block.
+- Per-item bid changes don't exist on any Realize strategy. Reframe as pause / activate / create / duplicate.
 
 ## Confirmation pattern (tiered)
 
@@ -244,6 +267,54 @@ Status gates which fields can be edited. The skill enforces this before previewi
 ```
 
 For `update_native_item` arrays (`verification_pixel`, `viewability_tag`): the array fields are full-replace within their section. To edit one entry, read with `get_item`, modify locally, send the merged result.
+
+## Creating a display item
+
+Display items attach to a Display campaign (or to a `pricing_model=CPC` campaign that has no items yet — see the **Pricing model picks the campaign type** note above).
+
+1. Resolve `account_id`, `campaign_id`. Confirm with `get_campaign` that the campaign is Display (or undetermined under `pricing_model=CPC`). If it's already locked as Native, refuse: *"This campaign is locked as Native — Display items can't be added. Want me to create a new Display campaign instead?"*
+2. Collect required fields via `AskUserQuestion`. Two recipes:
+   - **3P JS tag (programmatic / verification-tagged):** `ad_tag` (must start at character 0 — no `<!DOCTYPE>`, no `<html>` / `<body>` / `<div>` wrapper; must match the validator allowlist documented in `knowledge/creative.md`), `dimensions` (single-entry array, e.g., `[{"width": 300, "height": 250}]`), `creative_name`, `url` (landing page).
+   - **1P-hosted display:** `asset_url` (image / animated asset hosted by the advertiser or uploaded to Realize), `dimensions`, `creative_name`, `url`.
+3. Optional: `branding_text` (inherits from campaign if omitted), `verification_pixel` (DV / IAS impression pixel), `viewability_tag` (DV / IAS viewability tag).
+4. Render the preview:
+   ```
+   ▶ WRITE TARGET: <account_name> (<account_id>)
+
+   About to call create_display_item on campaign_id=<id> ("<campaign_name>") with:
+     creative_name: "<name>"
+     url: "<url>"
+     dimensions: [{width: 300, height: 250}]
+     ad_tag: "<first 80 chars>…"            # OR asset_url: "<url>"
+     branding_text: "<...>"                 # if supplied
+     verification_pixel: "<...>"            # if supplied
+     viewability_tag: "<...>"               # if supplied
+   ```
+5. `AskUserQuestion` → submit on Yes.
+6. After the call, the response contains the new `item_id` and typical initial status `PENDING_APPROVAL`. If `400 Unsupported tag`, the 3P tag failed the allowlist — strip any HTML wrapper and retry (see `knowledge/creative.md` for the strip rules).
+
+## Updating a display item
+
+Same status-gated pattern as `update_native_item`:
+
+```
+1. Resolve account_id, campaign_id, item_id.
+2. Call get_item(account_id, campaign_id, item_id).
+3. Inspect item.status:
+   - REJECTED → refuse: "This item is REJECTED — Realize will not accept edits.
+                Want me to create a replacement item via create_display_item instead?"
+                Stop here.
+   - RUNNING or PAUSED → only is_active + minor metadata are editable.
+     If the user's requested change touches ad_tag / asset_url / dimensions / creative_name:
+       refuse the substantive edit. Offer the alternative:
+         a) toggle the existing item to is_active=false via update_display_item,
+         b) create a replacement via create_display_item.
+   - PENDING_APPROVAL → all fields editable; proceed.
+4. Render preview tier appropriate to the change (same tiers as update_native_item).
+5. AskUserQuestion → submit on Yes.
+```
+
+For `update_display_item` arrays (`verification_pixel`, `viewability_tag`): same full-replace-within-section semantics as `update_native_item`. Read with `get_item`, modify locally, send the merged result.
 
 ## Post-write verification
 

@@ -112,7 +112,7 @@ Custom Rules can exist at two levels.
 
 ## Guardrails
 
-- Never enable Custom Rules during the learning phase (first 7-10 days).
+- Never enable Custom Rules during the learning phase (first 7-14 days).
 - Never create rules for newer campaigns without monitoring for 1-2 weeks first.
 - Never create overly simplistic rules with only one condition — always include safeguards.
 - Never build account-level rules when campaigns work toward different benchmarks.
@@ -126,7 +126,7 @@ Custom Rules can exist at two levels.
 
 ## Common Mistakes
 
-1. **Rules during learning phase.** Fights the algorithm. Wait 7-10 days.
+1. **Rules during learning phase.** Fights the algorithm. Wait 7-14 days.
 2. **Single-condition rules.** Too aggressive. Always multiple conditions (e.g., 0 conversions AND $100+ spent).
 3. **Not excluding recent data.** Blocks sites for delayed conversions. Exclude last 3 days for offline / in-app.
 4. **Unblocking without updating rule.** Same site gets blocked again. Adapt the rule when reversing actions.

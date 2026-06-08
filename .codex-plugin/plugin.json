@@ -1,0 +1,28 @@
+{
+  "name": "realize-ads-api",
+  "version": "0.1.0",
+  "description": "Query Realize campaigns and pull performance reports through natural language on Codex — powered by the Realize remote MCP. The Codex build ships the knowledge layer + system prompt + MCP wiring; the skill-driven workflows (campaign creation, optimization diagnosis, report aggregation) are Claude Code-specific and not available on Codex today.",
+  "author": {
+    "name": "Taboola"
+  },
+  "homepage": "https://github.com/taboola/realize-claude-plugin",
+  "repository": "https://github.com/taboola/realize-claude-plugin",
+  "license": "Apache-2.0",
+  "keywords": [
+    "taboola",
+    "realize",
+    "advertising",
+    "campaigns",
+    "reporting",
+    "mcp",
+    "analytics"
+  ],
+  "mcp": "../.mcp.json",
+  "systemPrompts": [
+    { "path": "../os/guardrails.md", "required": true }
+  ],
+  "knowledge": {
+    "manifest": "../knowledge/manifest.json",
+    "root": "../knowledge/"
+  }
+}

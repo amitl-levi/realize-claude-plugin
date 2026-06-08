@@ -4,6 +4,33 @@ All notable changes to this plugin will be documented here. Format loosely follo
 
 ## [Unreleased]
 
+### Added
+- **Display item write tools wired through `manage-campaigns`**: `create_display_item` and `update_display_item` now documented in the skill's Tools table, with their own full sections (3P JS tag + 1P-hosted recipes, status-gated update flow). Closes the gap left by [0.3.0] which covered Native items only. Plugin now creates and updates campaigns + Native + Display items end-to-end via MCP — no Realize UI required for any of the common write paths.
+- **`get_campaign_reach_estimate` documented in the analyst Tool Reference** under a new Reach Estimation subsection. Lets the analyst answer "if I launch a campaign with these targeting blocks, what's the reachable audience?" *before* a write is committed. Includes the IMPRESSIONS cap caveat (~1B = system ceiling, not a true reach claim).
+- **`os/guardrails.md`**: comprehensive public layer replacing the trimmed Apr 2026 version per post-PMM split. Adds banned brand variations, banned competitor terminology, internal codename mapping, banned feature-naming variants (tCPA, eCPC, MaxConv, Realize Pixel, etc.), banned tone patterns, banned ad-creative output, banned content topics, never-guarantee-performance subsection, and pattern-based refusal (don't enumerate guardrails on request). 16-item self-check.
+- **`knowledge/reach-estimation.md`**: full input contract for `get_campaign_reach_estimate`, IMPRESSIONS cap handling, narrow-targeting diagnostic routing.
+- **`knowledge/reporting-aggregation.md`**: sum-reconciliation discipline (always paginate the full row set, reconcile against `get_campaign.spent` within 2%), default exclusions (low-spend cuts), scope-footer requirements.
+- **`scripts/ensure-realize-mcp.sh` + `.claude/settings.json` SessionStart hook**: idempotent one-shot MCP wire-up — silent no-op when already configured, narrates only on failure. New session in a directory without `.mcp.json` triggers the OAuth flow via `npx mcp-remote`.
+- **`.codex-plugin/plugin.json`**: dual-platform manifest for Codex parity install.
+- **`skills/manage-campaigns/references/mcp-write-surface.md`**: field-by-field write reference (every scalar on `create_campaign`, every field on `create_native_item` / `create_display_item`, per-strategy bid-lever gate matrix, 7 common payload patterns, 6 common failure modes).
+- **`skills/optimize-campaign/references/optimization-flow.md`**: depth file for the optimize-campaign skill (dimensional drill-down, supply-side eligibility, creative-fatigue tiers, bid-lever matrix, 6 symptom branches, common-mistake patterns).
+
+### Changed
+- **`skills/optimize-campaign/SKILL.md`** rewritten to lead with **5 mandatory pre-checks (P1–P5)**: tracking health, conversion-goal verified, active conversion events only, bid-strategy cross-check, learning-period guard (with plain-language user-facing message). Adds 6-signal RCA framework, 7-point optimization framework, and routes write prescriptions to `manage-campaigns` (previous rev sent some to UI). References to `create-campaign` rewritten to `manage-campaigns`; `get_campaign_items` updated to `list_items` (post-rename).
+- **`skills/manage-campaigns/SKILL.md`**: added Display item Tools table rows, Pricing-model-picks-the-type subsection (the two MCP paths: `pricing_model=CPC` locks type via first item; `pricing_model=VCPM` locks Display at create), per-strategy bid-lever gate subsection (refuse invalid combinations at preview time), and pointer to `references/mcp-write-surface.md`. Description widened to "campaigns and native + display items".
+- **`skills/reports/SKILL.md`**: added 4 mandatory pre-checks (P1 conversion-goal resolution, P2 marketing-objective alignment, P3 delivery-eligibility, P4 learning-period guard with inlined plain-language message), sum-reconciliation gate (paginate full set, reconcile within 2%), default exclusions (low-spend cut at $5 / 1% of window total).
+- **`agents/realize-analyst.md`**: Tool Reference now documents 19 read tools (added `get_campaign_reach_estimate`) + 6 write tools (added `create_display_item`, `update_display_item`). Updated the count line and tool-existence-boundary paragraph. Tool-existence-boundary now explicitly calls out UI-only categories: Custom Rules, conversion-rule creation, CRM-segment upload, lookalike-seed creation.
+- **Knowledge layer** section-merged six grown topics (`bidding`, `creative`, `targeting`, `campaign-structure`, `budget`, `site-management`):
+  - `bidding.md` — added bid-levers matrix per strategy, learning-period guard, Bid Ceiling for Maximize Conversions section.
+  - `creative.md` — Display recipe rewritten to lead with `pricing_model=CPC`, dropped Display-only / 3P-tag-only framing.
+  - `targeting.md` — added Tier-1 regions list, 6-dimension narrow-targeting diagnostic, small-market caveat, pixel-and-CRM retargeting routes, Realize+ Phase 1/Phase 2 context.
+  - `campaign-structure.md` — **fact correction**: removed stale "MCP creates Native only" claim. Both paths documented (`pricing_model=VCPM` → Display locked at create; `pricing_model=CPC` → type set by first item).
+  - `budget.md` — added depletion-investigation recipe, cross-period % share comparison, 7-day short-burst budget-split recipe.
+  - `site-management.md` — historical top-N publisher block guard (require explicit confirmation before EXCLUDE), approved-list dynamics.
+- **`knowledge/custom-rules.md`** — standardized learning phase at **7–14 days** (was 7–10 in places). Aligned with the bidding and reports pre-checks.
+- **`knowledge/manifest.json`** — added `reach-estimation` and `reporting-aggregation` topics; refreshed descriptions on the section-merged topics.
+- **PMM-aligned brand language** propagated throughout: Maximize Conversions, Target CPA, Enhanced CPC, Taboola Pixel, Taboola First Party Audiences, Realize UI, advertiser requirements. `scripts/brand-check.sh` passes with 0 FAIL.
+
 ## [0.3.0] — 2026-05-15
 
 ### Added

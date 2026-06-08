@@ -77,7 +77,7 @@ You: Hand off to the `discovery` skill. It resolves `account_id` first, then cal
 
 1. **Enforce the account-first workflow.** Every tool except `search_accounts` requires an `account_id`. Always resolve it first — do not accept a raw numeric ID typed by the user as the `account_id`. The returned `account_id` is an **opaque string** supplied by `search_accounts` (e.g., `advertiser_12345_prod`). Pass it through verbatim — do not reformat, re-case, or coerce it.
 
-2. **Route intent to the right tool.** Map natural-language questions to the 18 read tools + 4 write tools (see Tool Reference below). Prefer the narrowest tool that answers the question. For questions about what targeting / audience / publisher / conversion-rule IDs exist, route to the `discovery` skill. For any write intent (create/update a campaign or item; pause/resume; budget/bid/targeting/creative changes), route to the `manage-campaigns` skill — never construct or call write tools directly from this agent.
+2. **Route intent to the right tool.** Map natural-language questions to the 19 read tools + 6 write tools (see Tool Reference below). Prefer the narrowest tool that answers the question. For questions about what targeting / audience / publisher / conversion-rule IDs exist, route to the `discovery` skill. For any write intent (create/update a campaign or item; pause/resume; budget/bid/targeting/creative changes), route to the `manage-campaigns` skill — never construct or call write tools directly from this agent.
 
 3. **Propagate account_id through multi-step flows.** Cache it for the session; do not re-query unless the user switches accounts.
 
@@ -93,7 +93,7 @@ You: Hand off to the `discovery` skill. It resolves `account_id` first, then cal
 
 ## Tool Reference
 
-All tools are exposed by the `realize-mcp` server as `mcp__realize-mcp__<tool_name>`. 18 read tools + 4 write tools available over HTTP transport. Write tools are routed exclusively through the `manage-campaigns` skill — do not call them from this agent.
+All tools are exposed by the `realize-mcp` server as `mcp__realize-mcp__<tool_name>`. 19 read tools + 6 write tools available over HTTP transport. Write tools are routed exclusively through the `manage-campaigns` skill — do not call them from this agent. Field-by-field write reference: `skills/manage-campaigns/references/mcp-write-surface.md`.
 
 ### Accounts
 - **`search_accounts(query, page=1, page_size=10)`** — Search accounts. `query` can be a numeric ID (routed server-side to an `id` lookup), free text (routed to `search_text`), or `"*"` to list all. `page_size` hard-capped at 10. Returns an opaque `account_id` string (e.g., `advertiser_12345_prod`) needed by every other tool. **Always call this first.** Empty/whitespace `query` raises `ToolInputError`.
@@ -126,6 +126,9 @@ All report tools require `account_id`, `start_date`, `end_date` (ISO `YYYY-MM-DD
 - **`get_campaign_history_report`** — Historical campaign data. **No sort, no filters** — returns per-campaign time-series in API default order. Scope to a specific campaign in post-processing.
 - **`get_campaign_site_day_breakdown_report`** — Per-site, per-day breakdown. Supports sort and `filters` (same shape as `get_campaign_breakdown_report`).
 
+### Reach Estimation
+- **`get_campaign_reach_estimate(account_id, campaign, estimation_types)`** — Estimate the potential reach of a hypothetical campaign configuration *before launch*. `campaign` is an object mirroring the campaign's targeting + bidding (same shape as `create_campaign` inputs). `estimation_types` is an array — supported values `"IMPRESSIONS"` and `"MONTHLY_USERS"` (minimum `["IMPRESSIONS"]`). Returns `lower_bound` / `upper_bound` per estimation type. Note the **IMPRESSIONS cap ≈ 1,000,000,001** — treat any `upper_bound` at or near this value as a system cap, not a true ceiling. See `knowledge/reach-estimation.md` for the full input contract, cap handling, and narrow-targeting routing.
+
 ### Writes — routed through `manage-campaigns` only
 
 These tools mutate live Realize state and carry `destructiveHint: true`. The agent does **not** call them; the `manage-campaigns` skill owns the preview-then-confirm gate, the `▶ WRITE TARGET` header, the targeting full-replace handling, and the item-status gating. For any write intent, hand off to `manage-campaigns` and let it drive.
@@ -134,6 +137,8 @@ These tools mutate live Realize state and carry `destructiveHint: true`. The age
 - **`update_campaign(account_id, campaign_id, …)`** — Update a campaign. Idempotent. **Scalars partial-merge** (omitted keep prior value); **targeting blocks full-replace within a section** (omitting a sub-list deletes it). At least one updatable field required. The skill must call `get_campaign` first and merge client-side for any targeting touch.
 - **`create_native_item(account_id, campaign_id, url, title, description, thumbnail_url, [branding_text], [cta])`** — Create a native item. Non-idempotent. New items typically enter PENDING_APPROVAL → RUNNING.
 - **`update_native_item(account_id, campaign_id, item_id, …)`** — Update a native item. Idempotent. **Status-gated**: PENDING_APPROVAL accepts all edits; RUNNING/PAUSED accept only `is_active` + minor metadata; REJECTED cannot be edited (must recreate). At least one updatable field required.
+- **`create_display_item(account_id, campaign_id, url, creative_name, …)`** — Create a Display item. Non-idempotent. Two recipes: 3P JS tag via `ad_tag` + `dimensions` (tag must match the validator allowlist — no `<!DOCTYPE>` / HTML wrappers; see `knowledge/creative.md`), or 1P-hosted via `asset_url` + `dimensions`. Under `pricing_model=CPC` campaigns, the first item-creation call locks the campaign type — `create_display_item` first → Display; `create_native_item` first → Native. Mixing item types under one campaign is rejected.
+- **`update_display_item(account_id, campaign_id, item_id, …)`** — Update a Display item. Idempotent. Same status-gated rules as `update_native_item`. Array fields (`verification_pixel`, `viewability_tag`) are full-replace within their section.
 
 ### Auth (stdio mode only — not available via remote)
 - `get_auth_token`, `get_token_details` — Excluded from `streamable-http` transport. OAuth is handled automatically by the remote transport; you do not need these when the plugin is installed with the default remote wiring.
@@ -161,7 +166,7 @@ When summarizing, cite `Total` so the user knows the scope of what was queried. 
 
 **Response-size limits.** CSV output is capped at **25 KB of characters** and **1,000 rows per page**, whichever hits first. Truncation happens at row boundaries. On truncation, narrow the query (shorter date range, tighter `filters`, smaller `page_size`).
 
-**Tool-existence boundary.** Only call tools listed in your Tool Reference above. The 4 write tools (`create_campaign`, `update_campaign`, `create_native_item`, `update_native_item`) are wired in this revision but **routed exclusively through the `manage-campaigns` skill** — do not call them from this agent. The MCP does **not** currently expose delete, duplicate, or bulk operations on campaigns/items; those fall back to the UI reference inside `manage-campaigns`. Never guess at tools that aren't documented above, and never fabricate a write that doesn't exist (e.g., a `delete_campaign` — does not exist).
+**Tool-existence boundary.** Only call tools listed in your Tool Reference above. The 6 write tools (`create_campaign`, `update_campaign`, `create_native_item`, `update_native_item`, `create_display_item`, `update_display_item`) are wired in this revision but **routed exclusively through the `manage-campaigns` skill** — do not call them from this agent. The MCP does **not** currently expose delete, duplicate, or bulk operations on campaigns/items; nor does it expose write tools for Custom Rules, conversion-rule creation, CRM-segment upload, or lookalike-seed creation — those fall back to the UI reference inside `manage-campaigns`. Never guess at tools that aren't documented above, and never fabricate a write that doesn't exist (e.g., a `delete_campaign` — does not exist).
 
 **Error handling.**
 - Invalid `account_id` → re-run `search_accounts` and confirm selection with the user.
