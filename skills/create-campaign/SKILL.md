@@ -1,165 +1,294 @@
 ---
 name: create-campaign
-description: Guide the user through creating or editing a Realize campaign in the Realize UI. Activates on any write-intent request (create, edit, pause, duplicate, delete) when the current MCP release does not expose a tool for that action. Grounded in the realize-toolkit's setup guidance and Taboola's official setup guide — uses the exact field names, enum values, budget-vs-bid-strategy rules, and learning-phase recommendations. Falls back to a UI walkthrough rather than fabricating a tool call; offers MCP verification once the user is done.
-allowed-tools: ["Read", "AskUserQuestion"]
+description: Create, edit, pause, resume, or duplicate Realize campaigns and ad items via the MCP write tools (`create_campaign`, `create_native_item`, `create_display_item`, `update_campaign`, `update_native_item`, `update_display_item`). Falls back to a Realize UI walkthrough only for actions the MCP doesn't yet expose (Custom Rules, conversion rules, audience uploads). Enforces the paused-on-create + two-gate activation pattern, runs a 12-item pre-write self-eval, refuses invalid bid-lever combinations, and prints a plain-text activation receipt. Activates on "create a campaign", "launch this", "set up a new Native campaign", "create 3 Display items with these tags", "pause this campaign", "duplicate this campaign with a higher budget", "edit the daily budget on campaign X", etc.
+allowed-tools: ["Read", "Bash", "AskUserQuestion"]
 ---
 
-# Create Campaign (UI Guidance)
+# Create Campaign
 
-This skill activates when the user asks for an action — campaign creation, editing, pausing, budget changes, creative swaps — that **no current MCP tool supports**. It walks the user through the equivalent steps in the **Realize UI** using the setup flow as documented in Taboola's [official setup guide](https://www.taboola.com/help/en/articles/10473049-setting-up-a-new-campaign).
+End-to-end Realize campaign and item creation / editing via the MCP. Default path is MCP write tools with a strict paused-on-create + two-gate activation discipline. Realize UI walkthrough is the fallback for actions the MCP doesn't yet expose.
 
-After the user says they've completed the UI flow, this skill hands back to the `realize-analyst` agent to verify the new state via the MCP tools that *do* exist (e.g., `get_campaign`, `get_all_campaigns`).
+**Depth:** the full field-by-field MCP write-surface reference (every scalar on `create_campaign`, every field on `create_native_item` / `create_display_item`, per-strategy bid-lever gates, discovery-tool table) lives in `references/mcp-write-surface.md`. Read it when a payload needs detailed field coverage.
 
-When upstream adds new tools that cover an action this skill currently handles via UI, update the agent's Tool Reference and trim the affected walkthrough here in an explicit PR.
+## When to use
 
-## Trigger phrases
+- "Create a new campaign for [advertiser]" / "Set up a Native campaign" / "Launch a Display campaign with these 3P JS tags"
+- "Add N new items to campaign X"
+- "Edit the daily budget on campaign X" / "Change the bid strategy" / "Update the targeting"
+- "Pause campaign X" / "Resume campaign X" / "Pause item Y"
+- "Duplicate campaign X with a higher budget"
+- "Block these publishers" (via `update_campaign(publisher_targeting=...)`)
 
-Any of: *create, make, set up, launch, edit, update, change, pause, resume, duplicate, clone, delete, remove, increase the budget, swap the creative*.
+If the user asks to diagnose an underperforming live campaign, route to `optimize-campaign` instead.
 
-## Response pattern
+## Two paths — MCP-first by default
 
-1. **Name the gap up front** (one sentence): *"There's no MCP tool today for that action, so I can't make the change directly — but I can walk you through it in the Realize UI and then verify the result."*
-2. **Ask the key parameters** via `AskUserQuestion` — only the ones you need for the specific action. For a new campaign, lean on the enums and rules below so the user isn't guessing. For a campaign-improvement request, route to `optimize-campaign` first if the user has an existing campaign to diagnose.
-3. **Walk through the UI step by step**, using the exact labels from the Realize UI. Stick to the walkthroughs below; don't invent paths.
-4. **Offer a verification step**: "Once you've saved it and it's through review (24–48 hours), tell me and I'll pull the campaign via MCP to confirm the settings match."
+The Realize MCP exposes these write tools:
 
-## Creating a new campaign — full walkthrough
+| Tool | Purpose |
+|---|---|
+| `create_campaign` | New campaign (paused on initial create) |
+| `update_campaign` | Edit any campaign field, including `is_active` for pause / resume and `publisher_targeting` for site blocks |
+| `create_native_item` | Add a Sponsored Content (Native) ad item |
+| `create_display_item` | Add a Display ad item (1P-hosted or 3P JS tag) |
+| `update_native_item` | Edit a Native item, including `is_active` for pause / resume |
+| `update_display_item` | Edit a Display item, including `is_active` for pause / resume |
 
-Source: Taboola "Setting Up a New Campaign".
+For these actions, use the MCP path below (Steps 0–8). For actions **not** in the MCP today, use the UI fallback section at the bottom: Custom Rules, conversion-rule creation, CRM-segment upload, lookalike-seed creation, audience uploads.
 
-### Step 1 — Navigate
+## Prerequisites
 
-1. Log in to the Realize UI.
-2. Open **Campaigns** (left nav).
-3. Click **+New** → **Campaign**. The **New Campaign** page opens.
+- `account_id` resolved via the `accounts` skill (the opaque string from `search_accounts`, not a numeric ID).
+- For Native vs Display decisions, the user has told you which format they need — or you've asked. Campaign type is **locked at creation** (see `knowledge/campaign-structure.md` and `knowledge/creative.md`); you cannot switch later. Two MCP paths to set the type:
+  - **`pricing_model=CPC`** (standard) — type is undetermined until the first item-creation call. `create_display_item` locks the campaign as Display; `create_native_item` locks it as Native.
+  - **`pricing_model=VCPM`** (alternate, Display only) — locks the campaign as Display at the `create_campaign` call itself.
 
-### Step 2 — Required fields
+## Activation principle — paused-on-create, two-door activation
 
-Ask the user for these before you dictate the walkthrough. Every field below is required before the campaign can be submitted for review.
+Every campaign + item is created in **paused** state (`is_active=false`) on the first pass. A separate confirmation gate flips them to active. **Two doors, not one.** This holds for all MCP-driven campaign + item creates. UI-fallback actions (Custom Rules, conversion rules, CRM uploads, lookalike seeds) follow Realize UI's own confirmation flow — they don't have a paused-vs-active state to gate.
 
-| Field | Accepted values | Notes |
-|---|---|---|
-| **Campaign Name** | Any text | Internal identifier. |
-| **Branding Text** | Any text | "Site name or product you're promoting." Shown publicly under each item. |
-| **Marketing Objective** | `Reach`, `Engagement`, `Leads`, `Online Purchases`, `App Promotion` | See enum below — pick the one that matches the user's goal. |
-| **Scheduling** | Start date/time; optional end date; 24/7 or custom hours | Default: start immediately upon approval, 24/7. Recommended minimum runtime: **7–10 days** to establish a baseline. |
-| **Bid Strategy** | `Maximize Conversions`, `Enhanced CPC`, `Fixed Bid` | Drives the budget minimums — see the Bid × Budget rules below. |
-| **Budget** | Currency amount (daily or monthly) | Minimum depends on bid strategy — see below. |
+## Resolution-before-write discipline
 
-### Step 3 — Marketing Objective (pick one)
+This is the no-write phase. Every value referenced must be resolved against the live account. Don't invent IDs.
 
-Quote the user-facing description so the choice is easy:
+| Field type | Resolver tool |
+|---|---|
+| `account_id` | `search_accounts` (guard against a wrong-account write) |
+| Geo codes (country / region / DMA / city / postal) | `search_geos` |
+| Audience segments | `search_audiences` / `search_lookalike_audiences` / `search_contextual_segments` |
+| Publisher allow / block list | `search_publishers` |
+| Conversion rules | `search_conversion_rules` |
+| CTA values | `list_cta_types` |
+| Time zone for dayparting | `list_time_zones` |
+| OS / browser targeting | `search_techno` |
 
-- **Reach** — *"Increase awareness of your brand."*
-- **Engagement** — *"Increase user engagement and page views."*
-- **Leads** — *"Drive leads such as email sign-ups."*
-- **Online Purchases** — *"Get people to buy your products."*
-- **App Promotion** — *"Get people to install your app."*
+If any reference cannot be resolved (e.g., a publisher name in the request returns no match), surface the gap as a **single batched question** before proceeding — don't ask one field at a time.
 
-### Step 4 — Bid Strategy × Budget rules
+## MCP path — the 8 steps
 
-These are hard Taboola-published minimums. Don't let the user set a budget below them — they won't get enough data for the algorithm to stabilize, and the campaign will either underspend or churn through noise.
+**Edit-only / pause-only / resume-only requests skip Steps 6–7.** The full 8-step workflow assumes new-campaign creation (with the activation gate + activation receipt). For *"pause campaign X"* / *"change the daily budget on campaign Y"* / *"unblock publisher Z on campaign W"* — already-live campaigns being edited — the workflow collapses to: Step 0 (confirm intent) → Step 1 (resolve IDs) → Step 2 (build the `update_*` payload) → Step 3 (modified pre-write self-eval — only the items that apply to an edit) → a single confirmation block (combined Step 4) → Step 5 (execute the update) → readback (modified Step 7 — just confirm the change took effect, no activation receipt). The two-gate pattern is for create flows; existing-live edits go through a single confirmation gate.
+
+### Step 0 — Confirm intent
+
+Confirm in one sentence what's about to happen: *"Creating 3 campaigns + 9 items on account `<account_id>`, all paused on creation."* If the user's request is ambiguous, ask one clarifying question before going further.
+
+### Step 1 — Resolve every code / ID before any write
+
+Walk the resolution table above. Run discovery tools in parallel where possible. Collect all resolved IDs + values. If anything is unresolved, batch the gap into a single question.
+
+### Step 2 — Build the create payloads (in memory, not yet sent)
+
+For each planned campaign, assemble the full `create_campaign` payload + the list of `create_native_item` / `create_display_item` payloads. Apply the bid-lever gates:
+
+- `cpc` only on `bid_strategy=FIXED`.
+- `cpa_goal` only on `bid_strategy=TARGET_CPA`.
+- `cpc_cap` valid on all strategies (last-resort lever on Maximize Conversions / Target CPA / Maximize Value — see `knowledge/bidding.md` "Bid Ceiling for Maximize Conversions").
+- `publisher_bid_modifier` only on Enhanced CPC / Fixed Bid (per the bid-lever matrix in `knowledge/bidding.md`).
+- `is_active=false` on every campaign and every item at this stage.
+
+Full required-scalars + targeting-block list is in `references/mcp-write-surface.md`. Per-strategy gates also live there.
+
+### Step 3 — Pre-write self-eval (mandatory, runs silently)
+
+Before sending any write, verify:
+
+- [ ] Each campaign payload has the required `create_campaign` scalars: `account_id`, `name`, `marketing_objective`, `branding_text`, `spending_limit_model`, `bid_strategy`.
+- [ ] `is_active=false` on every campaign.
+- [ ] Daily budget ≥ 10× CPA goal (Maximize Conversions) or ≥ 5× CPA goal (Enhanced CPC) — see `knowledge/budget.md`.
+- [ ] No `cpc` field on a non-FIXED campaign; no `cpa_goal` on a non-TARGET_CPA campaign.
+- [ ] No `publisher_bid_modifier` on Maximize Conversions / Target CPA / Maximize Value.
+- [ ] No mixing of Native + Display items in one campaign (campaign type is locked at creation).
+- [ ] Every display item has `ad_tag` (or `asset_url` for 1P-hosted), single-entry `dimensions`, and `creative_name`.
+- [ ] Every native item either has full creative fields (`title`, `description`, `thumbnail_url`) or omits all three to trigger server-side crawl.
+- [ ] Every item under a campaign respects the campaign's marketing objective + targeting (item-level targeting doesn't exist; consistency is at campaign level).
+- [ ] Every UTM / `tracking_code` value matches the input exactly.
+- [ ] Every conversion-rule reference resolves to an existing rule on the account.
+- [ ] No EXCLUDE on a publisher flagged top-N historical without surfacing the flag for explicit user confirmation (see `knowledge/site-management.md`).
+
+If any check fails, fix the payload (or ask the user) before sending writes.
+
+### Step 4 — Batch confirmation (single yes / no)
+
+Present the full plan in one block. List every campaign + item count. One `yes` proceeds; anything else cancels.
+
+```
+About to write 3 campaigns + 9 items to Realize, all paused on creation:
+
+  Campaign A: account_id=<id>, MAX_CONVERSIONS, $75/day cap, US national, Premium only
+       → 3 Native items, 1 conversion rule attached
+
+  Campaign B: account_id=<id>, TARGET_CPA cpa_goal=$25, …
+       → 3 Native items
+
+  Campaign C: account_id=<id>, FIXED cpc=$0.40, VCPM Display, …
+       → 3 Display items, 300x250 + 300x600
+
+Confirm to proceed with all 3 campaigns? (yes / no)
+```
+
+### Step 5 — Execute writes (paused state)
+
+Run the writes in this order. Stop on any failure and surface immediately — don't try to "fix and retry" silently.
+
+1. For each campaign:
+   1. `create_campaign(...)` with `is_active=false`. Capture returned `campaign_id`.
+   2. For each item in that campaign: `create_native_item(...)` or `create_display_item(...)` against the new `campaign_id`. Capture returned `item_id` values.
+2. After all campaigns + items are created, run a **single readback**: `get_all_campaigns` + per-campaign `get_campaign_items` to confirm what's now on the account matches what was promised in Step 4.
+
+### Step 6 — Activation gate (separate confirmation)
+
+A second confirmation block, distinct from Step 4:
+
+```
+3 campaigns + 9 items created and paused on account <id>. Ready to activate?
+
+  Campaign A (Campaign ID: <id>) → 3 items
+  Campaign B (Campaign ID: <id>) → 3 items
+  Campaign C (Campaign ID: <id>) → 3 items
+
+Confirm to launch all 3 campaigns? (yes / no)
+```
+
+On `yes`, run `update_campaign(is_active=true)` per campaign. Items inherit campaign-level activation; confirm each item's `is_active` is also `true` and `update_*_item(is_active=true)` if not.
+
+### Step 7 — Activation receipt
+
+Output a plain-text receipt in the terminal:
+
+```
+ACTIVATION RECEIPT — Account <account_id>
+Created at: YYYY-MM-DD HH:MM:SS UTC
+
+Campaign A
+  Campaign ID:  <id>
+  Status:       Running (activated YYYY-MM-DD HH:MM:SS UTC)
+  Items:        <id>, <id>, <id>  (all Running)
+
+Campaign B
+  ...
+```
+
+### Step 8 — Closing prompt
+
+Close with one question that hands off to follow-up work:
+
+> "<N> campaigns are live on account `<account_id>`. Want me to check delivery once data starts coming in? Typical learning phase is **7–14 days** — wait for that to complete before requesting any optimisation analysis."
+
+If the user wants to watch performance, hand off to the `reports` or `optimize-campaign` skill. If they want to launch another campaign, restart at Step 0.
+
+## Marketing Objective enum (when user is choosing)
+
+Pick one. Drives the algorithm's optimisation target. Cannot be changed after launch — create a new campaign if it was set wrong.
+
+| Objective | When to use |
+|---|---|
+| **Brand Awareness** | Increase visibility and recall. New brands or product-launch information. |
+| **Website Engagement** | Increase page views, clicks, or time spent on site. Driving qualified traffic or building warm audiences. |
+| **Lead Generation** | Drive leads through email sign-ups, form fills, or demo requests. |
+| **Online Purchases** | Drive purchases for a product or service. E-commerce or D2C. |
+| **App Installs** | Drive mobile app installs. |
+
+(Full guidance in `knowledge/campaign-structure.md`.)
+
+## Bid Strategy × Budget — hard minimums
 
 | Bid Strategy | Minimum daily budget | Also note |
 |---|---|---|
-| **Maximize Conversions** | **10× the CPA goal** per day | For learning-phase stability with conversion optimization. |
-| **Enhanced CPC** | **5× the CPA goal** per day (and **150× CPA monthly**) | — |
-| **Fixed Bid** | According to client requirements | According to client requirements |
+| **Maximize Conversions** | **10× the CPA goal** per day | $50 minimum if CPA < $5. The right default for conversion-driven campaigns. |
+| **Enhanced CPC** | **5× the CPA goal** per day | **150× CPA goal** monthly. |
+| **Fixed Bid** | Per advertiser requirements | Manual bid control — only when complete bid control is required (regulated category, vCPM / CPM rate-card buys). |
 
-**For non-conversion campaigns** (Reach / Engagement, where there's no CPA goal): target **100–200 clicks per day** as the minimum data volume. Budget = `CPC × desired clicks/day`. Example: $0.50 CPC × 100–200 clicks = $50–$100/day.
+For **non-conversion campaigns** (Brand Awareness / Website Engagement, where there's no CPA goal): target **100–200 clicks per day** as the minimum data volume. Budget = `expected CPC × desired clicks/day`. Example: $0.50 CPC × 100–200 clicks = $50–$100/day.
 
-If the user names a conversion goal and a CPA target, compute the minimum daily budget and say the math out loud so they see where the number comes from.
+Refuse to set a budget below these minimums — the algorithm can't stabilise and the spend will churn through noise without producing actionable data.
 
-### Step 5 — Targeting (recommend leaving broad for now)
+Full bid-strategy guidance: `knowledge/bidding.md`. Budget pacing + 10× rule: `knowledge/budget.md`.
 
-Taboola's setup guide explicitly recommends *not* narrowing targeting on a fresh campaign — it limits reach and starves the algorithm of data.
+## Targeting recommendations — broad at launch
 
-| Field | What to recommend for a new campaign |
+The platform's setup guidance explicitly recommends **not** narrowing targeting on a fresh campaign — it limits reach and starves the algorithm of data.
+
+| Field | Recommendation for a new campaign |
 |---|---|
-| **Location** | Leave blank or pick **Entire Country**. |
-| **Platform** (desktop / mobile / tablet) | Leave blank — let data show what works. |
-| **Connection Type**, **Operating System**, **Browser** | Leave blank. These are *optimization* levers for an existing campaign, not setup fields. |
+| **Location** | Pick the country / market, then leave the regional layers (DMA, city, postal) **blank**. |
+| **Platform** (Desktop / Mobile / Tablet) | Default per `knowledge/campaign-structure.md` — split into separate campaigns by platform group when budget allows (≥ ~$1k/day for MAX_CONVERSIONS or ~$5k total per split). Below that, bundle Desktop + Mobile + Tablet in one campaign. |
+| **Connection Type / OS / Browser** | Leave blank at launch. These are *optimisation* levers for an existing campaign, not setup fields. |
+| **Audience segments** | Leave blank at launch unless the user has a specific must-include audience. For Tier-1 markets, route via `knowledge/targeting.md`'s audience-strategy table after launch; for non-Tier-1, stay broad even longer (see the small-market caveat). |
 
-### Step 6 — Advanced Options (keep clear at launch)
+## Creative recommendations
 
-- **Block Sites** — leave empty initially. You need a site-by-site breakdown from real data (`get_campaign_site_day_breakdown_report`) before you know what to block.
-- **Brand Safety Pre-Bid** — leave off unless the user has a specific regulated-vertical requirement.
+Per `knowledge/creative.md`:
 
-Both settings can be applied later via the `optimize-campaign` flow.
+- **4–6 ads per campaign, never more than 10.** Below 4 the algorithm has nothing to test; above 10, learning gets diluted.
+- **3 distinct titles + 3 unique images per campaign** for performance advertisers.
+- Titles + thumbnails must **pre-qualify the click** — match what the user will find on the landing page. Misleading creatives spike CTR and tank conversion.
+- Avoid generic CTAs like *"Click Here"* or *"While Supplies Last"*. Use specific copy.
+- For **Display campaigns with 3P JS tags**: see `knowledge/creative.md` for the validator allowlist and HTML-wrapper-stripping rules. Tags must start at offset zero (no `<!DOCTYPE>`, no `<html>`, no leading whitespace).
 
-### Step 7 — Audience Targeting (usually skip for new campaigns)
+## Forbidden patterns
 
-Types available: **My Audiences**, **Taboola First Party Audiences**, **Contextual**.
+- **Activating without a separate yes / no confirmation.** Two gates: create-paused, then activate.
+- **Bulk activation without listing each campaign in the confirmation block.** Listing forces visibility of what's about to flip live.
+- **Creating before all read-resolutions complete.** Plans must be 100% resolved before any write.
+- **Combining the create + activate steps into one MCP call.** Even if `is_active=true` worked on create, this skill forces the two-gate pattern for stage-friendly auditability.
+- **Acting on "do what you think is best."** Never blanket authorisation. Propose, ask, then execute.
+- **Per-item (per-creative / per-ad) bid changes.** They don't exist on any Realize bid strategy. Reframe as pause / activate / create / duplicate / edit (see `knowledge/bidding.md` Bid Levers matrix).
+- **Per-publisher bid moves on Maximize Conversions / Target CPA / Maximize Value.** Only block / unblock / whitelist on these strategies.
+- **EXCLUDE on a top-N historical publisher** without surfacing the flag and getting explicit user confirmation (see `knowledge/site-management.md`).
+- **Narrowing targeting at launch** to "focus on the right users" — it's the opposite of platform guidance. Narrow *after* you have real data showing which segments underperform.
 
-Taboola's guidance: **don't target specific audiences on a new campaign** — it collapses reach and distorts data. If the user insists on audience logic, use **audience suppression** (under Conversion settings) to *exclude* already-converted users, rather than *including* a narrow segment.
+## Failure handling
 
-### Step 8 — Campaign Inventory (the ads themselves)
+Errors during the batch write:
 
-Required per ad:
-- **Thumbnail image**
-- **Headline**
-- **Website URL**
+1. **Surface the exact failure** — campaign or item ID, MCP error message verbatim.
+2. **State which campaigns / items were created** before the failure (they remain paused).
+3. **Ask the user how to proceed**: roll back (call `update_campaign(is_active=false)` or item equivalents and leave for cleanup), retry the failing call, or stop and triage.
+4. **Never silently retry on writes.** Reads can retry with backoff; writes always require explicit user direction.
 
-Optional:
-- **CTA Button**
-- **Ad Description**
+## Verification after the writes
 
-**Recommended volume: 4–6 ads per campaign (never more than 10)** so the algorithm has variations to test. Creative best practices (from Taboola):
+After Step 5 readback (and again post-activation in Step 6):
 
-- Titles and thumbnails should **pre-qualify the click** — match what the user will find on the landing page. Misleading creatives spike CTR and tank conversion.
-- Avoid generic CTAs like *"Click Here"* or *"While Supplies Last"* — use original, specific copy.
-- For performance marketers: one URL + 3 distinct titles and 3 unique images per campaign.
-- For publishers/brands: up to 10–20 URLs, each with 3 distinct titles and 3 unique images.
-- **Dynamic Keyword Insertion** is available for location, day-of-week, or device (e.g., *"People in {{location}} Can't Get Enough of This Razor"*).
+- `get_campaign(account_id, campaign_id)` per campaign — confirm scalars + `is_active` state match.
+- `get_campaign_items(account_id, campaign_id)` per campaign — confirm items are attached, with the expected statuses.
+- `get_all_campaigns(account_id)` for the account-level rollup.
 
-### Step 9 — Submit and wait
+Data may lag briefly in MCP results after writes; if a `get_campaign` returns the old state seconds after a save, wait ~30 seconds and retry once.
 
-1. Click **Continue** to submit for review.
-2. Realize reviews the campaign in **24–48 hours**. The same window applies to any edit after launch.
-3. Once approved, the campaign starts on its scheduled start time.
+## Realize UI fallback path
 
-### Step 10 — Post-launch verification (MCP-backed)
+For actions where **no MCP write tool exists today**, walk the user through the Realize UI. Re-verify via MCP reads after they confirm.
 
-Offer the user a verification step once the campaign is live:
+| Action | Realize UI path |
+|---|---|
+| **Create / edit a Custom Rule** | Campaigns → Rules tab → +New. Only after the campaign has finished its 7-14 day learning phase (per `knowledge/custom-rules.md`). |
+| **Create / edit a conversion rule** | Settings → Conversion Rules → +New. |
+| **Upload a CRM segment** | Audiences → CRM → +New. Minimum 1,000 user records; available in select markets only (per `knowledge/targeting.md`). |
+| **Create a lookalike seed** | Audiences → Lookalike → +New. US-based accounts for CRM Lookalike per `knowledge/targeting.md`. |
+| **Build a contextual / interest audience** | Audiences → Contextual → browse marketplace. |
+| **Apply Brand Safety pre-bid (DV / IAS)** | Campaigns → open campaign → Advanced Options → Brand Safety. One vendor per advertiser (per `knowledge/brand-safety.md`). |
+| **Duplicate a campaign** | Campaigns → row overflow menu (⋯) → Duplicate. Edit the copy's name, budget, and any targeting changes; then **Continue** to submit for review. After 24–48 hour approval, verify via `get_campaign(account_id, new_campaign_id)` — the new campaign has a fresh `campaign_id` distinct from the source. *(Alternative MCP recipe for scripted duplication: pull the source via `get_campaign` + `get_campaign_items`, build a new `create_campaign` payload with the source values modified per user input, then run the 8-step workflow above.)* |
 
-- Pull `get_campaign(account_id=..., campaign_id=...)` to confirm the fields match what they entered.
-- Pull `get_campaign_items(account_id=..., campaign_id=...)` to confirm the ads are attached and live.
-- After **7–10 days** of data, hand off to `optimize-campaign` for the first performance review. Do not recommend optimizations before that — the algorithm is still in its learning phase.
+Re-verify via `get_campaign` after the user confirms the change is saved.
 
-## Editing an existing campaign
+## Review cycle
 
-1. Open **Campaigns**, find the row, click the campaign name.
-2. In the campaign detail view, click **Edit** on the section you want to change (Budget, Targeting, Campaign Inventory, Bid…).
-3. Apply the change and **Save**. Edits trigger another **24–48 hour review**.
+Both MCP-driven creates and UI-driven edits trigger a **24–48 hour review window** before the campaign starts serving (or before an edit takes effect on a live campaign). Set this expectation up front so the user isn't surprised.
 
-Then verify via MCP (`get_campaign` after review completes).
+## Hand-off to the depth file
 
-## Pause / resume
+Read `references/mcp-write-surface.md` when:
 
-1. In the Campaigns list, toggle the status switch on the row, **or**
-2. Open the campaign and use the **Pause** / **Resume** button.
-
-Verify via `get_campaign` — the `status` field should reflect the change.
-
-## Duplicate
-
-1. In the Campaigns list, open the row's overflow menu (⋯).
-2. Click **Duplicate**.
-3. Edit the copy's name, budget, and targeting as needed, then **Continue** to submit.
-
-## Verification hand-off
-
-Once the user confirms completion, call the `realize-analyst` agent (or route back to `campaigns` / `reports` skills) to:
-
-- Fetch the new/edited campaign via `get_campaign(account_id=..., campaign_id=...)` and read back the settings. Both params are required — never call `get_campaign` with only `campaign_id`.
-- For pauses/resumes, confirm the `status` field in `get_campaign(account_id=..., campaign_id=...)` or list via `get_all_campaigns(account_id=...)`.
-- For budget edits, echo the new `budget` / `daily_budget` field values.
+- A payload needs detailed field coverage (every scalar on `create_campaign`, every targeting block, every item-level field).
+- The per-strategy bid-lever gate needs the full validity matrix (which combinations are valid where).
+- The discovery / readback tool table needs more detail than the Resolution section above.
+- An edit is mapping back from a desired user-facing change to the right `update_*` field.
 
 ## Gotchas
 
-- **Never pretend a write happened.** If the user says "go ahead and create it", restate the limitation and offer the walkthrough instead. Fabricating a successful response is a trust-breaker.
-- **Don't bypass the minimum budget rules.** A $10/day campaign with a $20 CPA goal will waste the $10 — Taboola published those minimums because below them the algorithm can't stabilize.
-- **Don't suggest narrowing targeting at launch** to "focus on the right users" — it's the opposite of Taboola's guidance. Narrow *after* you have real data showing which segments underperform.
-- **Don't invent Realize UI paths that aren't in this file.** For UI steps not covered here (advanced audience builder, A/B tests, custom brand-safety rules), direct the user to Realize documentation rather than guessing.
-- **Review cycle applies to edits, not just creation.** An edit to an existing live campaign still takes 24–48 hours to re-approve — set that expectation.
-- **Data may lag briefly** in MCP results after UI changes. If `get_campaign` returns the old state right after a save, wait a minute and retry once.
+- **Never pretend a write happened.** If a `create_*` returns an error, surface it. Fabricating a successful response is a trust-breaker.
+- **Don't bypass the minimum budget rules.** A $10/day campaign with a $20 CPA goal will waste the $10 — the published minimums exist because below them the algorithm can't stabilise.
+- **Don't invent Realize UI paths.** For UI steps not covered in the fallback table, direct the user to Realize documentation rather than guessing.
+- **Don't recommend optimisation before the learning phase finishes.** Refer the user to `optimize-campaign` only after 7–14 days of delivery (per `knowledge/bidding.md` Learning-Period Guard).
+- **Item-level targeting doesn't exist.** Targeting is set at the campaign level only. Don't propose "different geos per item" — propose separate campaigns instead.

@@ -1,6 +1,6 @@
 {
   "version": "0.1.0",
-  "description": "Realize ToolKit knowledge base — topic index for AI agents.",
+  "description": "Realize advertiser knowledge base — topic index. Encodes Realize advertiser best practices.",
   "pathConvention": "Every topic.path is relative to the directory containing this manifest file (i.e., the /knowledge directory).",
   "topics": [
     {
@@ -16,12 +16,16 @@
         "Maximize Conversions",
         "Fixed Bid",
         "learning phase",
+        "learning period guard",
+        "bid levers",
+        "no per-item bidding",
+        "publisher bid boost",
         "CPA volatility",
         "high CPA",
         "fluctuating CPA",
         "scaling bids"
       ],
-      "description": "Bidding strategy selection, learning phase behaviour, CPA troubleshooting, and scaling adjustments."
+      "description": "Bidding strategy selection, learning phase + learning-period guard, CPA troubleshooting, scaling adjustments, and the bid-levers matrix (what's valid at campaign / publisher / item level for each strategy)."
     },
     {
       "slug": "tracking",
@@ -57,11 +61,22 @@
         "contextual targeting",
         "predictive audiences",
         "retargeting",
+        "pixel retargeting",
+        "CRM retargeting",
+        "pixel vs CRM",
         "audience expansion",
         "scheduling",
-        "dayparting"
+        "dayparting",
+        "narrow targeting",
+        "narrow targeting diagnostic",
+        "reach estimator",
+        "6-dimension priority",
+        "Tier 1 regions",
+        "non-Tier-1",
+        "market availability",
+        "small markets"
       ],
-      "description": "Audience strategy, geo and platform targeting, expansion playbook, retargeting, and predictive audiences."
+      "description": "Audience strategy, geo / platform targeting, expansion playbook, retargeting, predictive audiences, and the 6-dimension narrow-targeting diagnostic."
     },
     {
       "slug": "creative",
@@ -82,9 +97,16 @@
         "creative review",
         "creative testing",
         "creative fatigue",
-        "social importer"
+        "social importer",
+        "Wilson score",
+        "statistical validity",
+        "validity tier",
+        "3P JS tag",
+        "1P-hosted display",
+        "create_display_item",
+        "create_native_item"
       ],
-      "description": "Sponsored Content ads, display ads, Gen AI AdMaker, landing pages, creative review, and creative testing."
+      "description": "Sponsored Content ads, display ads (1P-hosted + 3P JS-tag paths via MCP), Gen AI AdMaker, landing pages, creative review, creative testing, and statistically conservative creative ranking via validity tiers + Wilson score lower bound."
     },
     {
       "slug": "budget",
@@ -100,9 +122,12 @@
         "overspending",
         "scaling budget",
         "short-burst",
-        "flight dates"
+        "flight dates",
+        "depletion investigation",
+        "cross-period comparison",
+        "percent share"
       ],
-      "description": "Budget planning, the 10× CPA rule, pacing, scaling, and short-burst campaigns."
+      "description": "Budget planning, the 10× CPA rule, pacing, scaling, short-burst campaigns, depletion-miss investigation, and cross-period comparison rule (% share + Δ pp)."
     },
     {
       "slug": "campaign-structure",
@@ -116,9 +141,18 @@
         "Sponsored Content vs display",
         "campaign hierarchy",
         "Budget Distributor",
-        "naming conventions"
+        "budget allocator",
+        "Realize+",
+        "Realize+ beta",
+        "Realize Plus",
+        "platform split",
+        "device split",
+        "Native vs Display lock-in",
+        "cross-period comparison",
+        "percent share",
+        "delta pp"
       ],
-      "description": "Campaign Groups, objectives, campaign types (Sponsored Content / Display), hierarchy, and naming conventions."
+      "description": "Campaign Groups, objectives, campaign types (Sponsored Content / Display) including the Native-vs-Display lock-in and the two MCP paths (CPC + first-item / VCPM), hierarchy, platform/device splits, and cross-period comparison of structural splits in % share."
     },
     {
       "slug": "brand-safety",
@@ -136,7 +170,7 @@
         "third-party tags",
         "verification"
       ],
-      "description": "Native safety tools, DV/IAS integration, topic exclusions, and placement complaints."
+      "description": "Native safety tools, DV / IAS integration, topic exclusions, and placement complaints."
     },
     {
       "slug": "custom-rules",
@@ -166,11 +200,14 @@
         "publisher blocking",
         "publisher performance",
         "approved list",
+        "whitelist",
         "block list",
         "site targeting",
-        "publisher CPA"
+        "publisher CPA",
+        "historical block guard",
+        "block attribution"
       ],
-      "description": "Publisher performance monitoring, blocking decisions, approved lists, and cross-cutting CPA diagnosis."
+      "description": "Publisher performance monitoring, blocking decisions with the historical-top-N block guard, approved-list dynamics, block-attribution families (rule / targeting / bid loss), and cross-cutting CPA / CVR diagnosis."
     },
     {
       "slug": "environments",
@@ -182,12 +219,46 @@
         "Mail",
         "Apple News",
         "Lockscreen",
-        "display expansion",
-        "Sponsored Content to display",
-        "upsell",
+        "environment expansion",
         "inventory"
       ],
-      "description": "Environment overview, expansion strategy, and the Sponsored Content to Display upsell path."
+      "description": "Environment overview and expansion strategy across Mail, Apple News, and Lockscreen inventory."
+    },
+    {
+      "slug": "reach-estimation",
+      "title": "Reach Estimation",
+      "path": "reach-estimation.md",
+      "tags": [
+        "reach",
+        "reach estimator",
+        "reach estimation",
+        "campaign-level reach",
+        "audience size",
+        "narrow targeting",
+        "lower bound",
+        "get_campaign_reach_estimate"
+      ],
+      "description": "Campaign-level reach via `mcp__realize-mcp__get_campaign_reach_estimate` (never per-publisher). Inputs, outputs, IMPRESSIONS cap handling, narrow-targeting routing into the 6-dimension diagnostic in `targeting.md`."
+    },
+    {
+      "slug": "reporting-aggregation",
+      "title": "Reporting & Aggregation Discipline",
+      "path": "reporting-aggregation.md",
+      "tags": [
+        "reporting",
+        "aggregation",
+        "pagination",
+        "MCP report",
+        "site breakdown",
+        "campaign breakdown",
+        "top content",
+        "sum reconciliation",
+        "data accuracy",
+        "Total header",
+        "Records header",
+        "page_size"
+      ],
+      "description": "Pagination discipline + sum-reconciliation gate for every MCP-report-based answer. Codifies the rule that aggregating page 1 of a paginated report is a silent failure mode that understates spend on long-tail breakdowns. Mandatory read for any reporting / optimization question."
     }
   ]
 }
