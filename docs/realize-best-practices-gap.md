@@ -32,18 +32,23 @@ This document serves three jobs, in order of size:
 
 ## Current MCP capability baseline
 
-This plugin wires **18 read tools** from the upstream MCP, all read-only:
+This plugin wires **19 read tools + 6 write tools** from the upstream MCP:
 
 | Area | Tools |
 |---|---|
 | Accounts | `search_accounts` |
 | Campaigns | `list_campaigns`, `get_campaign` |
 | Items | `list_items`, `get_item` |
-| Discovery | `search_geos`, `search_techno`, `search_audiences`, `search_lookalike_audiences`, `search_contextual_segments`, `search_publishers`, `search_conversion_rules`, `list_time_zones`, `list_cta_types` |
+| Discovery — targeting | `search_geos`, `search_techno` |
+| Discovery — audiences | `search_audiences`, `search_lookalike_audiences`, `search_contextual_segments` |
+| Discovery — publishers / conversion | `search_publishers`, `search_conversion_rules` |
+| Resources | `list_time_zones`, `list_cta_types` |
 | Reports (CSV) | `get_top_campaign_content_report`, `get_campaign_breakdown_report`, `get_campaign_history_report`, `get_campaign_site_day_breakdown_report` |
+| Reach estimation | `get_campaign_reach_estimate` |
+| Writes — via `manage-campaigns` only | `create_campaign`, `update_campaign`, `create_native_item`, `update_native_item`, `create_display_item`, `update_display_item` |
 | Auth (stdio only) | `get_auth_token`, `get_token_details` |
 
-Upstream realize-mcp also exposes 4 write tools (`create_campaign`, `update_campaign`, `create_native_item`, `update_native_item`). **As of 0.3.0 these are wired** through the `manage-campaigns` skill (preview-then-confirm gate, mandatory `▶ WRITE TARGET` account header). The skill also retains a UI fallback section for the capabilities still not exposed by MCP (delete, duplicate, bulk ops) — see Part 3 for that catalog.
+Write tools are routed exclusively through the `manage-campaigns` skill (preview-then-confirm gate, mandatory `▶ WRITE TARGET` account header). The skill also retains a UI fallback section for capabilities still not exposed by MCP (delete, duplicate, bulk ops, Custom Rules, conversion-rule creation, CRM uploads, lookalike seeds) — see Part 3 for that catalog.
 
 ---
 
@@ -57,7 +62,7 @@ Upstream realize-mcp also exposes 4 write tools (`create_campaign`, `update_camp
 | Required fields list | `manage-campaigns` "Creating a campaign" — Required fields table |
 | Marketing Objective enum (5-value: `BRAND_AWARENESS` / `DRIVE_WEBSITE_TRAFFIC` / `LEADS_GENERATION` / `ONLINE_PURCHASES` / `MOBILE_APP_INSTALL`) | `manage-campaigns` "Creating a campaign" — Marketing Objective enum |
 | Bid Strategy enum + budget minimums (10× CPA / 5× CPA daily + 150× monthly / 100–200 clicks/day) | `manage-campaigns` "Creating a campaign" — Bid Strategy × Budget minimums |
-| 7–10 day learning phase | `manage-campaigns` Gotchas; `optimize-campaign`; agent Core Responsibility |
+| 7–14 day learning phase | `manage-campaigns` Gotchas; `optimize-campaign`; agent Core Responsibility |
 | "Stay broad at launch" targeting guidance | `manage-campaigns` "Creating a campaign" — Targeting recommendation |
 | 4–6 ads per campaign (never more than 10); "pre-qualify the click"; avoid generic CTAs | `manage-campaigns` "Creating a native item"; cross-referenced in `optimize-campaign` |
 | Post-launch MCP verification via `get_campaign` + `list_items` | `manage-campaigns` "Post-write verification" |

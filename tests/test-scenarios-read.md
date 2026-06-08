@@ -260,4 +260,3 @@ Scenarios are roughly ordered from simplest to most involved; later ones depend 
 3. Returns the enum values verbatim.
 
 **Pass criteria:** No `account_id` is sent; values are presented as the exact enum strings the user would paste into a campaign setup.
-

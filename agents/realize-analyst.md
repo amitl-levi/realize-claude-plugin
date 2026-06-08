@@ -106,15 +106,22 @@ All tools are exposed by the `realize-mcp` server as `mcp__realize-mcp__<tool_na
 - **`list_items(account_id, campaign_id)`** — List all creatives/items for a campaign. **No pagination.**
 - **`get_item(account_id, campaign_id, item_id)`** — Get a specific item's details. All three params required.
 
-### Discovery
+### Discovery — targeting metadata
 Read-only lookups for the catalogs that Realize's targeting / audience / publisher / conversion settings draw from. All return opaque IDs — pass them through verbatim downstream.
+
 - **`search_geos(dimension, country_code?)`** — Look up geo IDs. `dimension` ∈ {`countries`, `regions`, `dma`, `cities`, `postal_codes`}. `country_code` (ISO-2) is **required** when `dimension` is anything other than `countries`. Returns `{dimension, values: [{code, name}, ...]}`.
 - **`search_techno(dimension, os_family?)`** — Look up OS / browser IDs. `dimension` ∈ {`operating_system_versions`, `browsers`}. `os_family` is **required** when `dimension=operating_system_versions`.
+
+### Discovery — audiences
 - **`search_audiences(account_id, country_codes?, country_targeting_type?)`** — List Marketplace + My Audiences. `country_codes` is comma-separated ISO-2. `country_targeting_type` ∈ {`ALL`, `INCLUDE`, `EXCLUDE`}.
 - **`search_lookalike_audiences(account_id, country_code?)`** — List lookalike audience rules.
 - **`search_contextual_segments(account_id, country_codes?, country_targeting_type?)`** — List contextual segments.
+
+### Discovery — publishers and conversion
 - **`search_publishers(account_id, query, publisher_ids?, page?, page_size?)`** — Search publishers. Pass `query="*"` to list all. `page_size` hard-capped at 50, default 10. Optional `publisher_ids` is an array of int IDs to look up directly.
 - **`search_conversion_rules(account_id)`** — List configured conversion rules for the account.
+
+### Resources
 - **`list_time_zones()`** — Return all valid IANA time zone names (e.g., `America/New_York`). No params.
 - **`list_cta_types()`** — Return all valid `cta_type` enum values for native items. No params.
 
@@ -141,7 +148,7 @@ These tools mutate live Realize state and carry `destructiveHint: true`. The age
 - **`update_display_item(account_id, campaign_id, item_id, …)`** — Update a Display item. Idempotent. Same status-gated rules as `update_native_item`. Array fields (`verification_pixel`, `viewability_tag`) are full-replace within their section.
 
 ### Auth (stdio mode only — not available via remote)
-- `get_auth_token`, `get_token_details` — Excluded from `streamable-http` transport. OAuth is handled automatically by the remote transport; you do not need these when the plugin is installed with the default remote wiring.
+- `get_auth_token`, `get_token_details` — Excluded from HTTP transport. OAuth is handled automatically by the remote transport; you do not need these when the plugin is installed with the default remote wiring.
 
 ## Technical Specifications
 

@@ -77,8 +77,8 @@ All notable changes to this plugin will be documented here. Format loosely follo
 - Competitor-naming bullet in `os/guardrails.md` (names competitors — can't appear publicly).
 - Four directional sections moved to `guardrails-private.md` (internal layer, outside this repo): Preferred messaging direction, Framing rules, Emotional tone matching, "What the assistant is not."
 
-### Not in scope
-- Upstream realize-mcp exposes write tools (`create_campaign`, `update_campaign`, `create_native_item`, `update_native_item`). This plugin **intentionally does not enable writes** in this release — enabling them changes the plugin's safety posture and will be tracked in a separate issue/PR. Write-intent requests continue to route to the `create-campaign` UI walkthrough.
+### Not in scope (superseded in 0.3.0)
+- Upstream realize-mcp exposes write tools (`create_campaign`, `update_campaign`, `create_native_item`, `update_native_item`). At 0.2.0 the plugin intentionally did not enable writes — they were wired in 0.3.0 via the new `manage-campaigns` skill.
 
 ## [0.1.0] — 2026-04-24
 

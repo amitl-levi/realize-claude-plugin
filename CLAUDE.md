@@ -26,8 +26,9 @@ This is a thin Claude Code plugin that wraps the [Realize remote MCP](https://gi
            ├──► reports skill          → 4 report tools (CSV output)
            ├──► optimize-campaign skill → diagnoses underperformance; hands write
            │                              prescriptions to manage-campaigns
-           └──► manage-campaigns skill → create_campaign, update_campaign,
-                                         create_native_item, update_native_item.
+           └──► manage-campaigns skill → 6 write tools: create_campaign, update_campaign,
+                                         create_native_item, update_native_item,
+                                         create_display_item, update_display_item.
                                          Tiered preview-then-confirm with mandatory
                                          ▶ WRITE TARGET account header.
                                          UI fallback for delete/duplicate/bulk ops.
@@ -35,7 +36,7 @@ This is a thin Claude Code plugin that wraps the [Realize remote MCP](https://gi
                      ▼
 ┌────────────────────────────────────────┐
 │ Realize MCP (https://mcp.realize.com)  │
-│  OAuth 2.1, 18 read + 4 write tools    │
+│  OAuth 2.1, 19 read + 6 write tools    │
 │  wired here. Writes routed exclusively │
 │  through the manage-campaigns skill.   │
 └────────────────────────────────────────┘
