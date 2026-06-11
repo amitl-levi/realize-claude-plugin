@@ -44,7 +44,6 @@ This plugin wires **18 read tools** from the upstream MCP, all read-only:
 | Discovery — publishers / conversion | `search_publishers`, `search_conversion_rules` |
 | Resources | `list_time_zones`, `list_cta_types` |
 | Reports (CSV) | `get_top_campaign_content_report`, `get_campaign_breakdown_report`, `get_campaign_history_report`, `get_campaign_site_day_breakdown_report` |
-| Auth (stdio only) | `get_auth_token`, `get_token_details` |
 
 Write operations (campaign + item create/edit) are not enabled in this plugin revision — see Part 3 for the catalog of write capabilities still routed through the `create-campaign` UI walkthrough.
 

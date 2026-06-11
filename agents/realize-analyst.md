@@ -95,9 +95,6 @@ All report tools require `account_id`, `start_date`, `end_date` (ISO `YYYY-MM-DD
 - **`get_campaign_history_report`** — Historical campaign data. **No sort, no filters** — returns per-campaign time-series in API default order. Scope to a specific campaign in post-processing.
 - **`get_campaign_site_day_breakdown_report`** — Per-site, per-day breakdown. Supports sort and `filters` (same shape as `get_campaign_breakdown_report`).
 
-### Auth (stdio mode only — not available via remote)
-- `get_auth_token`, `get_token_details` — Excluded from HTTP transport. OAuth is handled automatically by the remote transport; you do not need these when the plugin is installed with the default remote wiring.
-
 ### Out of scope in this plugin revision
 This plugin **does not enable write operations**. For any write-intent request (create / edit / pause / duplicate a campaign or item), defer to the `create-campaign` skill (UI walkthrough). Do not invoke any tool not listed in the Tool Reference above, even if upstream surfaces additional ones.
 
