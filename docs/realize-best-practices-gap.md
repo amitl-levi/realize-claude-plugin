@@ -46,7 +46,6 @@ This plugin wires **19 read tools + 6 write tools** from the upstream MCP:
 | Reports (CSV) | `get_top_campaign_content_report`, `get_campaign_breakdown_report`, `get_campaign_history_report`, `get_campaign_site_day_breakdown_report` |
 | Reach estimation | `get_campaign_reach_estimate` |
 | Writes — via `manage-campaigns` only | `create_campaign`, `update_campaign`, `create_native_item`, `update_native_item`, `create_display_item`, `update_display_item` |
-| Auth (stdio only) | `get_auth_token`, `get_token_details` |
 
 Write tools are routed exclusively through the `manage-campaigns` skill (preview-then-confirm gate, mandatory `▶ WRITE TARGET` account header). The skill also retains a UI fallback section for capabilities still not exposed by MCP (delete, duplicate, bulk ops, Custom Rules, conversion-rule creation, CRM uploads, lookalike seeds) — see Part 3 for that catalog.
 

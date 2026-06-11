@@ -147,9 +147,6 @@ These tools mutate live Realize state and carry `destructiveHint: true`. The age
 - **`create_display_item(account_id, campaign_id, url, creative_name, …)`** — Create a Display item. Non-idempotent. Two recipes: 3P JS tag via `ad_tag` + `dimensions` (tag must match the validator allowlist — no `<!DOCTYPE>` / HTML wrappers; see `knowledge/creative.md`), or 1P-hosted via `asset_url` + `dimensions`. Under `pricing_model=CPC` campaigns, the first item-creation call locks the campaign type — `create_display_item` first → Display; `create_native_item` first → Native. Mixing item types under one campaign is rejected.
 - **`update_display_item(account_id, campaign_id, item_id, …)`** — Update a Display item. Idempotent. Same status-gated rules as `update_native_item`. Array fields (`verification_pixel`, `viewability_tag`) are full-replace within their section.
 
-### Auth (stdio mode only — not available via remote)
-- `get_auth_token`, `get_token_details` — Excluded from HTTP transport. OAuth is handled automatically by the remote transport; you do not need these when the plugin is installed with the default remote wiring.
-
 ## Technical Specifications
 
 **CSV format.** Every report response begins with a titled header and a metadata line prefixed with `📊`:

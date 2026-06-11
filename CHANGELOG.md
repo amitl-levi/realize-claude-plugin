@@ -4,6 +4,9 @@ All notable changes to this plugin will be documented here. Format loosely follo
 
 ## [Unreleased]
 
+### Removed
+- All references to the local stdio MCP fallback — removed from `README.md`, the `realize-analyst` agent, and the best-practices gap doc. The plugin documents only the auto-installed remote streamable-HTTP transport; the `realize-mcp` repo link is retained solely as a dependency pointer.
+
 ### Added
 - **`.claude/settings.json` `permissions.allow` block for the 6 MCP write tools** (`create_campaign`, `update_campaign`, `create_native_item`, `update_native_item`, `create_display_item`, `update_display_item`): bypasses the Claude Code auto-mode classifier's false-positive on every write. The classifier compares the user-typed numeric account ID (e.g. `1065940`) against the opaque `account_id` returned by `search_accounts` (e.g. `pumikademoaccount`) and flags the mismatch as a wrong-account write — even though both are equivalent representations of the same account, and resolving via `search_accounts` is the plugin's contracted ID-routing pattern. Also flags object-typed targeting params (`country_targeting` and siblings) that render as `[object Object]` in the classifier's inspection view. Structural safety is unaffected: the `manage-campaigns` skill's `▶ WRITE TARGET` preview-then-confirm gate runs before every write — that remains the real chokepoint, not the classifier.
 - **Display item write tools wired through `manage-campaigns`**: `create_display_item` and `update_display_item` now documented in the skill's Tools table, with their own full sections (3P JS tag + 1P-hosted recipes, status-gated update flow). Closes the gap left by [0.3.0] which covered Native items only. Plugin now creates and updates campaigns + Native + Display items end-to-end via MCP — no Realize UI required for any of the common write paths.
