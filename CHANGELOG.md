@@ -4,6 +4,9 @@ All notable changes to this plugin will be documented here. Format loosely follo
 
 ## [Unreleased]
 
+### Removed
+- All references to the local stdio MCP fallback — removed from `README.md`, the `realize-analyst` agent, and the best-practices gap doc. The plugin documents only the auto-installed remote streamable-HTTP transport; the `realize-mcp` repo link is retained solely as a dependency pointer.
+
 ## [0.2.0] — 2026-05-13
 
 ### Added

@@ -53,31 +53,9 @@ claude mcp add --transport http --callback-port 3000 realize-mcp https://mcp.rea
 - **No manual token management.** Token refresh is handled by the transport layer.
 - **Multi-user safe.** The remote endpoint is stateless and per-user — no shared credentials.
 
-## Advanced: Local stdio fallback
+## Dependency
 
-If you need to run Realize MCP locally (air-gapped dev, custom routing, etc.), install the Python package and configure client credentials:
-
-```bash
-pip install realize-mcp
-```
-
-Then add to `.mcp.json` (or your Claude Code MCP config):
-
-```json
-{
-  "mcpServers": {
-    "realize-mcp": {
-      "command": "realize-mcp-server",
-      "env": {
-        "REALIZE_CLIENT_ID": "your_client_id",
-        "REALIZE_CLIENT_SECRET": "your_client_secret"
-      }
-    }
-  }
-}
-```
-
-For self-hosted HTTP mode and full local deployment details, see the [realize-mcp repo](https://github.com/taboola/realize-mcp).
+This plugin wraps the remote [realize-mcp](https://github.com/taboola/realize-mcp) server, which is its sole runtime dependency. The server is auto-installed via the streamable-HTTP transport (see the install options above) — no separate setup is required.
 
 ## Available Skills
 
