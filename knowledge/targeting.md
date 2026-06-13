@@ -183,6 +183,37 @@ The recommended starting point for most advertisers is **premium editorial suppl
 
 ## Retargeting Campaigns
 
+### Predictive audience campaigns — signal dependencies beyond the seed event
+
+A predictive audience campaign is fed by the predictive model trained on the seed event (typically a pixel conversion or S2S event). **The model's freshness depends on continuous conversion volume** — and that volume often comes from *other* campaigns on the same account that are dropping conversion signals into the same pixel.
+
+When the user reports a predictive audience campaign that "stopped delivering" or "lost scale", check these signal-source dependencies before concluding the campaign itself is the problem:
+
+| Signal source | What can starve the predictive model | Diagnostic check |
+|---|---|---|
+| **Other non-predictive campaigns on the same account paused or de-budgeted** | The predictive model relied on those campaigns' conversion volume to stay calibrated. Pause them and the model degrades within days. | Pull the change history on sibling campaigns. Were any paused or had budgets cut in the same window as the predictive scale drop? |
+| **The seed event itself stopping or being redefined** | If the pixel was reinstalled, the conversion rule was edited, or the event name changed, the seed signal can break silently. | Check `get_campaign_history_report` for conversion-event changes and the pixel installation status. |
+| **Audience pool exhaustion** | Predictive audiences are still bounded by the addressable population. After weeks of running, the campaign can saturate the in-pool users and slow naturally. | Check the Reach Estimator's monthly-users range vs. the campaign's cumulative reach. |
+
+**Important:** *Don't apply standard Maximize Conversions troubleshooting to a predictive campaign without checking signal sources first.* A predictive campaign with a stale signal looks identical to a "low budget" or "audience too narrow" problem on the surface — but the fix is different.
+
+### Native vs Display creative type — they are distinct campaign types, not creative variants within one campaign
+
+A campaign is **either** Native **or** Display, locked at the first item-creation call (under `pricing_model=CPC`) or at the `create_campaign` call (under `pricing_model=VCPM`). They can't be mixed under one campaign.
+
+**Creative material under each:**
+
+| Campaign type | What "items" look like |
+|---|---|
+| **Native** | Items use `creative_type` values like `STATIC_IMAGE`, `PERFORMANCE_VIDEO`, etc. These render in-feed under the publisher's editorial chrome. |
+| **Display** | Items use `ad_tag` (3P JS tag) or `asset_url` + `dimensions` (1P-hosted image / animation). These render as banner ads in standard IAB sizes. |
+
+**The common mistake:** describing a Native campaign whose items are `STATIC_IMAGE` or `PERFORMANCE_VIDEO` as "having no Display creatives" or "in EMPTY_DISPLAY learning state because there are no Display ads". This conflates two distinct concepts:
+- A Native campaign with image-format items is **Native**, not "Display with no Display ads".
+- `EMPTY_DISPLAY` as a learning-state value means the *Display* component of optimization has no signal — but on a Native-locked campaign this is expected and irrelevant; the campaign is not serving Display inventory at all.
+
+When diagnosing a Native campaign's underperformance, do not recommend "add a Display creative". The right framing is: add **more Native items** (more variety of titles, thumbnails, descriptions) — or, if the user wants Display reach, **launch a separate Display campaign**.
+
 ### Pixel retargeting vs CRM retargeting — when to use which
 
 Both unlock first-party signal but they pull different audience populations.

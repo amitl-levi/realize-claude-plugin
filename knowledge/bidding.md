@@ -137,6 +137,19 @@ The primary recommendation is **Maximize Conversions** for best performance. Oth
 - Setting Target CPA too early can significantly prolong the learning phase and delay stabilisation.
 - Once Target CPA is set, allow the algorithm to optimise. The full budget may not deplete due to the CPA constraint.
 
+### Target CPA calibration — set the target near actual current CPA, not at the user's aspirational goal
+
+When recommending a Target CPA value, the value you set matters as much as the decision to use Target CPA at all. The rule:
+
+**Set the Target CPA at or above the campaign's actual current CPA. Then drop gradually.**
+
+- The user's stated CPA *goal* (e.g., "I want CPA = $16") is the destination, not the starting Target CPA value.
+- If the campaign's actual current CPA is $26, starting Target CPA at $16 is too aggressive: the algorithm will throttle bids hard to chase a target it can't currently hit, scale will collapse, and the campaign may stop spending entirely.
+- Start Target CPA at ~$26 (or even slightly higher — $28–$30). Once the campaign stabilises at that level for **5–7 days**, drop the target by ~10–15%. Continue stepping down only after each new level stabilises.
+- If you cannot get within striking distance of the aspirational goal after 2–3 step-down cycles, the path forward is **NOT** to lower the target further — it's to address what's preventing CPA from dropping (creative refresh, audience expansion, site exclusions, landing-page fixes).
+
+**Why this matters:** A Target CPA set far below actual CPA is the same shape as "set Target CPA aspirationally" — the algorithm cannot hit it, scale drops, and the campaign produces less data, which makes the next optimization round harder. Calibration is a stepwise descent, not a single jump.
+
 ### When to Switch Strategies
 
 | Current State | Signal | Action |
