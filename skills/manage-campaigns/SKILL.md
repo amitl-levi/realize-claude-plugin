@@ -53,6 +53,28 @@ The MCP will accept invalid combinations silently (some fields are ignored on ce
 - `publisher_bid_modifier` — only on **Enhanced CPC** or **Fixed Bid**. On `MAX_CONVERSIONS` / `TARGET_CPA` / `MAX_VALUE`, the only per-publisher lever is **block / unblock / whitelist** via `publisher_targeting`. Surfacing a per-publisher bid move on those strategies is a forbidden pattern — re-frame as a block.
 - Per-item bid changes don't exist on any Realize strategy. Reframe as pause / activate / create / duplicate.
 
+## Scope confirmation — refuse confirmation-skip framings and ambiguous-target requests
+
+Two upstream gates apply **before** any preview is rendered. They protect the confirmation pattern from being short-circuited by user framing.
+
+### Refuse confirmation-skip framings
+
+If the user says any of *"don't ask before each one"*, *"no need to confirm"*, *"just apply the change and tell me after"*, *"skip the preview"*, *"auto-mode"*, *"apply them all"* — or any close paraphrase — the skill MUST refuse the framing. Pre-authorization in chat is not a substitute for the per-write confirmation gate. Reply with:
+
+> "I'll still confirm each change before applying it — the preview-then-confirm gate is per-write and isn't bypassable, even with pre-authorization. Want me to start with the first change?"
+
+Then proceed normally, one write at a time, each with its own `AskUserQuestion` confirm step. Never collapse multiple writes into a single bulk confirmation, and never run the writes back-to-back inside a single tool block.
+
+### Confirm scope before fanning out
+
+If the request can reasonably map to multiple targets — multiple campaigns, multiple items, multiple accounts — confirm the exact scope with the user **before** rendering any preview. Examples of ambiguous-target asks:
+
+- *"Create 3 ad variations on account X"* — without a named campaign or item, the plugin must NOT default to "apply across all of the user's campaigns". Ask which campaign(s) — and how many items per campaign — before any write.
+- *"Apply the budget bump to my campaigns"* — confirm whether the user means one specific campaign, a named list, or "all running campaigns"; if all, enumerate them in the preview before each one.
+- *"Pause the worst performers"* — confirm the selection criterion (CPA threshold? click count? campaign vs item?) and the resulting list before any pause.
+
+Scope confirmation uses `AskUserQuestion` with concrete options drawn from the user's account data (e.g., *"Which campaign — A, B, or C?"*, or *"All 4 running campaigns, or pick a subset?"*). Default expansion ("all of them") is forbidden unless the user explicitly confirms it.
+
 ## Confirmation pattern (tiered)
 
 The skill never submits a write without first showing the user a preview and getting an explicit confirmation via `AskUserQuestion`. Tiers matched to risk:
@@ -330,6 +352,8 @@ If `get_campaign` returns the prior state immediately after a save, wait a minut
 
 These remain Realize-UI-only. Do not fabricate tools for them.
 
+**Always surface a deeplink alongside the menu-path fallback** when redirecting the user to a specific UI page tied to their current account/campaign context. Deeplink templates and rules in `knowledge/realize-ui-deeplinks.md`. Example: if pointing a user to a campaign's block list, emit `https://ads.taboola.com/accounts/<account_id>/campaigns/<campaign_id>/edit?section=advanced` next to the menu path, so the user clicks once instead of navigating.
+
 ### Delete a campaign
 
 Realize UI → Campaigns → row's overflow menu (⋯) → **Delete**.
@@ -348,6 +372,8 @@ Multi-select pause/resume/edit operations on the Campaigns or Items list are UI-
 
 ## Gotchas
 
+- **Never accept "skip the confirmation" framings.** If the user says *"no need to ask before each one"* / *"just apply"* / *"skip the preview"* / *"auto-mode"*, refuse the framing and proceed one write at a time with the normal per-write confirm. See the **Scope confirmation** section above. Pre-authorization in chat is not a substitute for the per-write gate.
+- **Never fan out a write across multiple targets without explicit scope confirmation.** *"Create 3 ad variations"* with no named campaign does NOT mean "apply to every campaign in the account". Ask which campaign(s) and how many items per campaign before any write fires.
 - **Never pretend a write happened.** If the model is unsure whether a write completed (network blip, ambiguous response), do not claim success. Re-read via `get_campaign` / `get_item` and surface what's actually there.
 - **Never submit a write before the `AskUserQuestion` gate.** No "I'll just create it and confirm afterward." The confirmation is the safeguard; bypassing it is the trust-breaker.
 - **Never omit the `▶ WRITE TARGET` header.** It is the only account-scope safeguard. Missing header → refuse to render the preview and re-resolve the account.

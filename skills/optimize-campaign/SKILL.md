@@ -8,6 +8,20 @@ allowed-tools: ["Read", "Bash", "AskUserQuestion"]
 
 Data-driven diagnosis and recommendation loop for a Realize campaign. Pulls performance data via the MCP, applies mandatory pre-checks, then routes to one of two diagnostic paths and prescribes concrete next actions.
 
+## Internal vs user-facing terminology — never leak the framework names
+
+The framework labels in this file (*"pre-checks P1–P5"*, *"RCA — 6-signal framework"*, *"Signal 1 / Signal 2 / Signal 6"*, *"residual signal"*, *"creative restructure shock"*) are **internal scaffolding** for the model. **Never surface them in user-facing output.** Per `os/guardrails.md`, do the work and describe the actual finding in plain English.
+
+| Internal label (this file uses) | What to say to the user |
+|---|---|
+| *"mandatory pre-checks"* / *"running P1–P5"* | Just do the checks silently. If a check matters to the answer, describe the finding ("the campaign has no conversion goal attached"). |
+| *"RCA — root cause analysis"* (without expansion) | Either say *"root cause analysis"* in full, or just present the analysis. Don't label the process. |
+| *"Signal 1 (config change) → Signal 2 (supply concentration) chain"* | Describe the actual sequence: *"The Feb 13 block redirected spend to Yahoo Homepage, which then served lower-engagement slots — that's what shows up as the CTR drop."* |
+| *"silent failure mode"* / *"silent diagnostic-quality killer"* | Describe what's wrong factually: *"The campaign doesn't have a conversion goal attached, so the optimizer doesn't know what to bid toward."* No "silent" anything. |
+| *"residual signal — never the default"* | Don't surface the framework hierarchy. Just present the conclusion. |
+
+The framework helps you think; the user needs the conclusion, not the framework.
+
 **Depth:** The substantive depth (dimensional drill-down rules, supply-side eligibility, creative-fatigue tiers, bid-lever matrix, symptom-class branches, common-mistake table, output discipline) lives in `references/optimization-flow.md`. Read it when a branch fires that needs operational specifics.
 
 ## When to use
@@ -39,7 +53,7 @@ Before any analysis, run all five. Skipping leads to wrong conclusions.
 | # | Pre-check | Action | Why |
 |---|---|---|---|
 | **P1** | **Tracking health** | Pull `get_campaign_history_report` over the date window. Confirm conversions > 0 if clicks > 0. | A broken pixel makes every downstream metric meaningless. |
-| **P2** | **Campaign-level conversion goal verified** | Use `get_campaign` to read the campaign's `conversion_rules` / goal mapping. If no campaign-level goal is set, the campaign is optimising toward the account default — surface this to the user, do NOT assume the KPI from spend volume. | Wrong KPI = wrong diagnosis. Common silent failure mode when an account has multiple conversion events. |
+| **P2** | **Campaign-level conversion goal verified** | Use `get_campaign` to read the campaign's `conversion_rules` / goal mapping. If no campaign-level goal is set, the campaign is **inheriting the account default** — the optimizer targets the most frequent conversion marked "include in total" at the account level. This is a **valid configuration when the include-in-total settings are sensible**, not a failure mode. Surface to the user what the campaign is actually optimizing toward (read it from the account's conversion-rules list) — don't assume the KPI from spend volume. | Wrong KPI = wrong diagnosis. Account-default routing is fine when configured deliberately; only flag it as a problem if the account's include-in-total events don't match what the user is trying to optimize for. |
 | **P3** | **Active conversion events only** | Filter out archived / disabled conversions when reading conversion data. | Dead events inflate the apparent drop and produce phantom CPA values. |
 | **P4** | **Bid-strategy cross-check** | Read the campaign's `bid_strategy` + `pricing_model`. Map every proposed action against the bid-lever matrix in `references/optimization-flow.md`. If the action is not valid for the strategy, reframe before delivering. | Per-publisher bid moves don't exist on Maximize Conversions / Target CPA / Maximize Value. Per-item bids don't exist on any strategy. Recommending them is a credibility failure. |
 | **P5** | **Learning-period guard** | See "When P5 fires" below for the full rule + the user-facing message. | The Realize algorithm hasn't stabilised yet — recommendations made during learning reset the timer. |
