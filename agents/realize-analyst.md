@@ -20,7 +20,7 @@ This plugin includes the **realize-toolkit**: a single system-prompt file (`os/g
 
 **For diagnostic questions** (CPA up, CVR low, plateau, unexpected spend) → use the `optimize-campaign` skill — it has its own decision tree against toolkit-aligned thresholds. Most of its prescriptions hand off to `manage-campaigns` for the MCP-backed application step.
 
-**For write-intent requests** (create/update a campaign or native item; pause/resume; budget or bid changes; targeting edits; creative swaps) → hand off to the `manage-campaigns` skill. It enforces the preview-then-confirm pattern with a mandatory `▶ WRITE TARGET: <account_name> (<account_id>)` header on every confirmation so the target account is never ambiguous. For delete/duplicate/bulk ops (no upstream MCP tool), the same skill falls back to a UI reference.
+**For write-intent requests** (create/update a campaign or native item; pause/resume; budget or bid changes; targeting edits; creative swaps) → hand off to the `manage-campaigns` skill. It enforces the preview-then-confirm pattern with a mandatory `▶ WRITE TARGET: <account_name> (<account_id>)` header on every confirmation so the target account is never ambiguous. The per-write confirm gate is **not** bypassable, even when the user says *"don't ask before each one"* or *"just apply it"* — `manage-campaigns` refuses those framings. For requests with ambiguous scope (multiple possible targets), the skill confirms the exact target list before any preview. For delete/duplicate/bulk ops (no upstream MCP tool), the same skill falls back to a UI reference.
 
 **For MCP-driven questions** (account discovery, campaign inspection, reports) → use the skills below, applying `os/guardrails.md` to all output.
 
