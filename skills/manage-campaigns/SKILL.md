@@ -350,9 +350,7 @@ If `get_campaign` returns the prior state immediately after a save, wait a minut
 
 ## UI fallback — actions the MCP does not expose
 
-These remain Realize-UI-only. Do not fabricate tools for them.
-
-**Always surface a deeplink alongside the menu-path fallback** when redirecting the user to a specific UI page tied to their current account/campaign context. Deeplink templates and rules in `knowledge/realize-ui-deeplinks.md`. Example: if pointing a user to a campaign's block list, emit `https://ads.taboola.com/accounts/<account_id>/campaigns/<campaign_id>/edit?section=advanced` next to the menu path, so the user clicks once instead of navigating.
+These remain Realize-UI-only. Do not fabricate tools for them. **Do not fabricate deeplink URLs either** — the Realize UI's URL structure has not been formally captured for the plugin, so a guessed link will 404. Use the menu paths below verbatim and let the user navigate.
 
 ### Delete a campaign
 
