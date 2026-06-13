@@ -259,26 +259,6 @@
         "page_size"
       ],
       "description": "Pagination discipline + sum-reconciliation gate for every MCP-report-based answer. Codifies the rule that aggregating page 1 of a paginated report is a silent failure mode that understates spend on long-tail breakdowns. Mandatory read for any reporting / optimization question."
-    },
-    {
-      "slug": "realize-ui-deeplinks",
-      "title": "Realize UI Deeplinks",
-      "path": "realize-ui-deeplinks.md",
-      "tags": [
-        "UI deeplink",
-        "UI fallback",
-        "UI redirect",
-        "Realize console URL",
-        "click-once",
-        "menu path",
-        "deeplink template",
-        "campaign edit URL",
-        "block list URL",
-        "Custom Rules URL",
-        "audiences URL",
-        "billing URL"
-      ],
-      "description": "Deeplink templates for Realize-UI-only actions. When the plugin routes the user to the UI (block-list edit, Custom Rules, CRM upload, conversion-event creation, billing, etc.), emit a one-click URL alongside the menu-path fallback. Used by manage-campaigns and optimize-campaign UI-fallback sections."
     }
   ]
 }
