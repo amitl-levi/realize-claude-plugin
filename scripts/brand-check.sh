@@ -101,6 +101,11 @@ scan_fail "Absolute privacy / safety claim" '(100%\s+brand\s+safe|gdpr\s+complia
 scan_fail "Internal codename: Backstage"    '\bbackstage\b' "${PUBLIC[@]}"
 scan_fail "Internal codename: blindspot"    '\bblindspot\b' "${PUBLIC[@]}"
 scan_fail "Schema / column names"           '\b(syndicator_id|affiliate_id|unip_rules|campaign_history)\b' "${PUBLIC[@]}"
+scan_fail "Internal data-store: Vertica"    '\bvertica\b' "${PUBLIC[@]}"
+scan_fail "Internal data-store: trc schema" '\b(from\s+trc\.|trc\.(sp_|unip_|agg_))' "${PUBLIC[@]}"
+# Match employee-shaped emails (first.last@taboola.com) but NOT support@/billing@ aliases.
+# Requires at least one dot in the local part.
+scan_fail "Internal Taboola employee email" '[a-z][a-z.-]*\.[a-z]+@taboola\.com' "${PUBLIC[@]}"
 # Note: item_id removed from this list in the plugin's copy of the linter — it's a public MCP tool parameter name (clients pass it to get_item). It remains banned in the toolkit's linter where it refers to internal schema columns.
 
 # 4. Repo / authorship leaks (always)
@@ -168,6 +173,11 @@ scan_warn "Check attribution context near ROAS"  '\bROAS\s+(is|was|of|=)' "${PUB
 scan_warn "Overpromise language"                 '\b(guaranteed|guarantees|guarantee)\s+(cpa|roas|scale|improvement|results)' "${PUBLIC[@]}"
 scan_warn "Hedging phrases"                      '\b(we\s+think|we\s+believe|we\s+try\s+to)\b' "${PUBLIC[@]}"
 scan_warn "Fear-based framing"                   '\byou.{0,3}re\s+losing\s+money\b' "${PUBLIC[@]}"
+scan_warn "Lecturing-tone framing"               '\b(wrong\s+frame|the\s+wrong\s+way\s+to\s+(look\s+at|think\s+about)|that\s+is\s+not\s+how)\b' "${PUBLIC[@]}"
+scan_warn "Internal process callout"             '\b(mandatory\s+pre[- ]checks?|silent\s+(failure\s+mode|diagnostic[- ]quality\s+killer))\b' "${PUBLIC[@]}"
+scan_warn "Unexpanded RCA acronym"               '\bRCA\b' "${PUBLIC[@]}"
+scan_warn "Internal signal framework"            '\bSignal\s*[0-9]+\b' "${PUBLIC[@]}"
+scan_warn "Raw enum in user-facing text"         '\b(EMPTY_DISPLAY|CVR_LEARNING_LIMITED|CVR_LEARNING_COMPLETE|MAX_CONVERSIONS|TARGET_CPA|MAX_VALUE|PENDING_APPROVAL)\b' "${PUBLIC[@]}"
 
 # Programmatic-buying recommendation (PDF: Realize must be bought direct)
 scan_warn "Programmatic / PMP / DSP recommendation" '\b(programmatic(ally)?|via\s+a?\s*(pmp|dsp))\b' "${PUBLIC[@]}"
