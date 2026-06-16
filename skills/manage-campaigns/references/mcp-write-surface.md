@@ -72,7 +72,7 @@ All optional; populate where the request specifies. Item-level targeting does no
 
 | Field | Shape | Notes |
 |---|---|---|
-| `publisher_targeting` | `{type: INCLUDE|EXCLUDE|ALL, value: [publisher IDs]}` | `search_publishers`. Run the historical-top-N guard in `knowledge/site-management.md` before any EXCLUDE. |
+| `publisher_targeting` | `{type: INCLUDE|EXCLUDE|ALL, value: ["<publisher_id_string>", ...]}` | **Values are strings** — feed the IDs returned by `search_publishers` verbatim; the MCP validator rejects integers. Run the historical-top-N guard in `knowledge/site-management.md` before any EXCLUDE. |
 | `publisher_bid_modifier` | `{"values": [{"target": "<publisher_name>", "cpc_modification": <multiplier>}]}` (publisher **name** string, not ID; `cpc_modification` is a multiplier — `1.20` = +20%, `0.90` = −10%) | **ONLY valid on `SMART` (Enhanced CPC) or `FIXED`.** Reject on Maximize Conversions / Target CPA / Maximize Value. |
 | `predefined_premium_site_targeting` | enum | `ALL` / `PREMIUM` / `REGULAR`. Confirm account permission before setting. |
 
@@ -104,7 +104,7 @@ All optional; populate where the request specifies. Item-level targeting does no
 |---|---|---|
 | `account_id`, `campaign_id` | string | Both required. |
 | `url` | string | Landing-page URL. Required. |
-| `ad_tag` | string | Required for 3P JS tags. Raw HTML/JS string — must match the validator allowlist in `knowledge/creative.md`. **No `<!DOCTYPE>`, no `<html>`, no `<body>` / `<div>` wrapper, no leading whitespace.** First character must be `<`. |
+| `ad_tag` | string | Required for 3P JS tags. Raw HTML/JS string — must pass the per-vendor validator server-side. **No `<!DOCTYPE>`, no `<html>`, no `<body>` / `<div>` wrapper, no leading whitespace.** First character must be `<`. |
 | `asset_url` | string | Required for 1P-hosted display (uploaded image / motion file). Mutually exclusive with `ad_tag`. |
 | `thumbnail_url` | string | Required for 1P-hosted display. Do NOT supply for 3P JS tags — the tag IS the creative. |
 | `dimensions` | `[{width, height}]` | Single-entry array. Standard IAB sizes: 300×250, 300×600, 320×50, 728×90, 970×250, 160×600, 720×1280. |
@@ -305,7 +305,8 @@ The full chain — name resolution via `search_publishers`, historical-top-N gua
 
 ```
 # After resolving names → IDs via search_publishers and reading current state via get_campaign:
-new_block = list(dict.fromkeys(current.publisher_targeting.value + [<publisher_id>]))    # de-dupe, preserve order
+# Publisher IDs are STRINGS — pass them verbatim from search_publishers, do not coerce to int.
+new_block = list(dict.fromkeys(current.publisher_targeting.value + ["<publisher_id_string>"]))    # de-dupe, preserve order
 update_campaign(
   account_id=<id>, campaign_id=<id>,
   publisher_targeting={"type": "EXCLUDE", "value": new_block},
@@ -316,7 +317,8 @@ update_campaign(
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| `400 Unsupported tag` from `create_display_item` | 3P tag has an HTML wrapper or doesn't match the allowlist | Strip everything before the matched element (no `<!DOCTYPE>`, no `<html>` / `<body>` / `<div>`). See `knowledge/creative.md` for the allowlist. |
+| `400 Unsupported tag` from `create_display_item` | 3P vendor not configured for this account — cannot self-correct | Route the user to their Account Manager (or `support@taboola.com`) for vendor enablement. **Do not retry**; do not strip the wrapper (it won't help). |
+| `400 Invalid html tag structure` from `create_display_item` | Markup is wrapped or malformed | Strip everything before the first ad-tag element (no `<!DOCTYPE>`, no `<html>` / `<body>` / `<div>`, no leading whitespace), then retry. |
 | `create_campaign` rejected — "conversion rule required" | Performance objective without an attached rule | Either attach an existing rule (`search_conversion_rules`) or stage with a placeholder per `knowledge/bidding.md` "When the conversion rule isn't ready yet" recipe. |
 | Item creation succeeds but item shows wrong campaign type in UI | Created a Native item on a campaign destined for Display (or vice versa) | Item locks campaign type irreversibly. Pause the wrong-type campaign and create a fresh one with the intended type. See `knowledge/creative.md` "If a Native campaign was created by mistake when Display was wanted". |
 | `cpc` field accepted but ignored on Maximize Conversions / Target CPA / Maximize Value | The algorithm sets the bid on fully-automated strategies — `cpc` is silently dropped | Don't set `cpc` on these strategies. If a ceiling is needed, use `cpc_cap` (last-resort). |

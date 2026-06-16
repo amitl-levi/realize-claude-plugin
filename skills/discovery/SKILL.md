@@ -72,4 +72,4 @@ For pulling **performance numbers**, route to the `reports` skill instead. For c
 - **`query="*"` lists all** publishers, but the result is still paginated — don't assume page 1 is the full set.
 - **Audience country filters are passthrough.** `country_codes` and `country_targeting_type` are forwarded to the upstream API; verify the result actually narrowed by checking the row count.
 - **Catalogs change.** Time zones and CTA types are versioned upstream — don't cache them across sessions; re-pull when starting a new campaign-creation flow.
-- **Pass IDs verbatim downstream.** `audience_id`, `segment_id`, `rule_id`, and publisher `id` are opaque values returned by the API. Do not coerce to int, strip, or re-case them.
+- **Pass IDs verbatim downstream — and respect their underlying type.** `account_id`, `campaign_id`, `item_id`, and publisher `id` are **opaque strings** returned by the API; do not coerce to int. `audience_id`, `segment_id`, lookalike `rule_id`, and conversion-rule `id` are **integers** — pass them as numbers, not stringified. In all cases, do not strip or re-case the value returned by the search / list tool.

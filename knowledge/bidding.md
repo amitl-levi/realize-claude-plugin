@@ -225,7 +225,7 @@ If the campaign is pacing ahead of expectation:
 | Audience targeting | Check whether targeting is too restrictive. |
 | Bidding (Enhanced CPC / Fixed) | Consider slightly increasing bids to stay competitive in auctions. |
 | Bidding (Maximize Conversions) | Consider increasing daily spend by up to 20% of existing spend. |
-| Pace Ahead feature | Use to accelerate spend for a specific campaign if needed. |
+| Pace Ahead feature (UI-only — not exposed via the Realize MCP) | Use to accelerate spend for a specific campaign if needed; set in the Realize UI. |
 
 For display campaigns specifically, also check:
 
@@ -362,4 +362,4 @@ Consider using the **Performance Simulator** (if eligible) to identify potential
 - Enhanced CPC base-bid formula when CVR is known: `CPC = CPA goal × CVR`. When CVR is unknown, use similar-segment average CPC.
 - For Enhanced CPC: daily budget should be 5× CPA goal, monthly budget should be 150× CPA goal.
 - When CPA spikes persist after learning, check average CPA from past weeks looking at **post-click performance only** before setting a Target CPA.
-- The Pace Ahead feature can accelerate spend for a specific campaign when delivery is slow.
+- The Pace Ahead feature can accelerate spend for a specific campaign when delivery is slow. **Note:** Pace Ahead is not exposed via the Realize MCP — it is set in the Realize UI; the plugin cannot enable or adjust it through `create_campaign` / `update_campaign`.

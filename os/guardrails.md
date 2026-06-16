@@ -69,7 +69,7 @@ The values come from the `search_accounts` result for the current session. Do no
 ### Confirmation flow
 
 1. Resolve / validate inputs (including `account_id` via `search_accounts`).
-2. For updates: `get_campaign` or `get_item` to capture current state.
+2. For updates: `get_campaign` or `get_item` to capture current state. **For list-replace fields** (`publisher_targeting`, `country_targeting`, `platform_targeting`, `audience_targeting`, `audience_targeting_excluded`, `contextual_segments`, and any other array-valued field), the MCP performs a **full replace** — sending a partial list silently wipes the rest. After fetching current state, merge the user's intended additions / removals into the existing array client-side and submit the full merged list. Never send a delta.
 3. Render the preview, leading with the `▶ WRITE TARGET` header.
 4. Ask the user to confirm — explicit Yes / No / Edit (Claude Code uses `AskUserQuestion`; on Codex or other hosts, render the question and **wait for an explicit user reply** before any write).
 5. On **Yes** → call the write tool exactly once.

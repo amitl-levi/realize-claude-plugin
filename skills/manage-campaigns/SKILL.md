@@ -250,15 +250,15 @@ Never construct a targeting block payload without rendering the side-by-side `Cu
 
 Publisher block / unblock / whitelist requests ("block ESPN on this campaign", "unblock NYTimes", "whitelist these 3 sites") are the most common optimization-side write. They route through `update_campaign.publisher_targeting` — there is **no dedicated `update_blocklist` MCP tool**. The full-replace gotcha above applies.
 
-`publisher_targeting` shape: `{type: INCLUDE|EXCLUDE|ALL, value: [publisher IDs]}`. `EXCLUDE` is a block list, `INCLUDE` is a whitelist (approved-list mode), `ALL` clears the gate.
+`publisher_targeting` shape: `{type: INCLUDE|EXCLUDE|ALL, value: ["<publisher_id_string>", ...]}`. **Values are strings**, not integers — feed the publisher ID strings returned by `search_publishers` verbatim; the MCP validator rejects integers. `EXCLUDE` is a block list, `INCLUDE` is a whitelist (approved-list mode), `ALL` clears the gate.
 
 Mandatory chain:
 
-1. Resolve the publisher names → IDs via `search_publishers(account_id, query=...)`. Never accept a publisher name as the write input; the field requires integer IDs.
+1. Resolve the publisher names → IDs via `search_publishers(account_id, query=...)`. Never accept a publisher name as the write input; the field expects the publisher ID **strings** returned by `search_publishers` — pass them verbatim, do not coerce to int.
 2. Call `get_campaign(account_id, campaign_id)` and read the current `publisher_targeting` block.
 3. Merge:
-   - **Block** ("block ESPN") with current `{type:"EXCLUDE", value:[10,12]}` and resolved ESPN id `=14` → merged `{type:"EXCLUDE", value:[10,12,14]}`.
-   - **Unblock** ("unblock site 12") with current `{type:"EXCLUDE", value:[10,12,14]}` → merged `{type:"EXCLUDE", value:[10,14]}`.
+   - **Block** ("block ESPN") with current `{type:"EXCLUDE", value:["site_10","site_12"]}` and resolved ESPN id `="site_14"` → merged `{type:"EXCLUDE", value:["site_10","site_12","site_14"]}`.
+   - **Unblock** ("unblock site_12") with current `{type:"EXCLUDE", value:["site_10","site_12","site_14"]}` → merged `{type:"EXCLUDE", value:["site_10","site_14"]}`.
    - **Switch to whitelist** ("only allow ESPN, NYT") — confirm the user understands the side-effect of moving from EXCLUDE-mode to INCLUDE-mode (everything not on the list stops serving) before previewing.
 4. Run the **historical-top-N block guard** from `knowledge/site-management.md` on every publisher about to be blocked. If a candidate-to-block is currently a top performer, surface the warning and ask the user to confirm before continuing.
 5. Render the preview with the side-by-side current → after view:
@@ -268,11 +268,11 @@ Mandatory chain:
    About to call update_campaign on campaign_id=<id> ("<name>").
 
    ⚠ Targeting full-replace — this overwrites the entire publisher_targeting section.
-   Current publisher_targeting: {type: "EXCLUDE", value: [10, 12]}
-   After update:                {type: "EXCLUDE", value: [10, 12, 14]}
+   Current publisher_targeting: {type: "EXCLUDE", value: ["site_10", "site_12"]}
+   After update:                {type: "EXCLUDE", value: ["site_10", "site_12", "site_14"]}
 
    Resolved names:
-     +14  ESPN Network - ESPN.com
+     + site_14  ESPN Network - ESPN.com
    ```
 6. `AskUserQuestion`: "Submit this `update_campaign` call?" Yes / Edit / Cancel.
 7. On Yes, call `update_campaign(account_id, campaign_id, publisher_targeting={...full merged block...})`.
@@ -331,7 +331,7 @@ Display items attach to a Display campaign (or to a `pricing_model=CPC` campaign
 
 1. Resolve `account_id`, `campaign_id`. Confirm with `get_campaign` that the campaign is Display (or undetermined under `pricing_model=CPC`). If it's already locked as Native, refuse: *"This campaign is locked as Native — Display items can't be added. Want me to create a new Display campaign instead?"*
 2. Collect required fields via `AskUserQuestion`. Two recipes:
-   - **3P JS tag (programmatic / verification-tagged):** `ad_tag` (must start at character 0 — no `<!DOCTYPE>`, no `<html>` / `<body>` / `<div>` wrapper; must match the validator allowlist documented in `knowledge/creative.md`), `dimensions` (single-entry array, e.g., `[{"width": 300, "height": 250}]`), `creative_name`, `url` (landing page).
+   - **3P JS tag (programmatic / verification-tagged):** `ad_tag` (must start at character 0 — no `<!DOCTYPE>`, no `<html>` / `<body>` / `<div>` wrapper, no leading whitespace; tag must pass the per-vendor validator server-side), `dimensions` (single-entry array, e.g., `[{"width": 300, "height": 250}]`), `creative_name`, `url` (landing page).
    - **1P-hosted display:** `asset_url` (image / animated asset hosted by the advertiser or uploaded to Realize), `dimensions`, `creative_name`, `url`.
 3. Optional: `branding_text` (inherits from campaign if omitted), `verification_pixel` (DV / IAS impression pixel), `viewability_tag` (DV / IAS viewability tag).
 4. Render the preview:
@@ -348,7 +348,9 @@ Display items attach to a Display campaign (or to a `pricing_model=CPC` campaign
      viewability_tag: "<...>"               # if supplied
    ```
 5. `AskUserQuestion` → submit on Yes.
-6. After the call, the response contains the new `item_id` and typical initial status `PENDING_APPROVAL`. If `400 Unsupported tag`, the 3P tag failed the allowlist — strip any HTML wrapper and retry (see `knowledge/creative.md` for the strip rules).
+6. After the call, the response contains the new `item_id` and typical initial status `PENDING_APPROVAL`. Two distinct 400s can come back from `create_display_item` — read the error message body and route accordingly:
+   - **`400 Unsupported tag`** → the 3P vendor is not configured for this account. **Stripping the wrapper will not fix it.** Route the user to their Account Manager (or `support@taboola.com`) to request vendor enablement; do not retry.
+   - **`400 Invalid html tag structure`** → the markup is malformed or wrapped (`<!DOCTYPE>`, `<html>`, `<body>`, `<div>`, leading whitespace). Strip everything before the first ad-tag element and retry.
 
 ## Updating a display item
 

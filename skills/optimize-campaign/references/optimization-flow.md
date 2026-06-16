@@ -222,7 +222,7 @@ The canonical bid-lever matrix lives in `knowledge/bidding.md` ("Bid Levers — 
 - **Per-item (per-creative / per-ad) bidding does NOT exist on any bid strategy.** If a user asks to "bid more on this ad," reframe as scale (more budget at the campaign level), pause-and-replace (kill the loser, multiply the winner), or duplicate-and-isolate.
 - **Per-publisher bid moves are valid only on Enhanced CPC / Fixed Bid.** On Maximize Conversions / Target CPA / Maximize Value the only publisher-level levers are block / unblock / whitelist.
 - **CPC bid changes are valid only on Enhanced CPC / Fixed Bid.** On the fully-automated strategies (Maximize Conversions / Target CPA / Maximize Value) the algorithm sets the bid — recommending a CPC change there is invalid.
-- **CPC cap is valid on all strategies** as a last-resort lever. On Maximize Conversions specifically, apply only if CPA efficiency is critical AND scale is strong (see `knowledge/bidding.md` "Bid Ceiling for Maximize Conversions").
+- **CPC cap is valid only on Maximize Conversions** as a last-resort lever — setting it on Enhanced CPC / Fixed Bid / Target CPA / Maximize Value returns API 400. On Maximize Conversions, apply only if CPA efficiency is critical AND scale is strong (see `knowledge/bidding.md` "Bid Ceiling for Maximize Conversions").
 - **Target CPA is a last-resort lever, not a routine adjustment.** Wait at least 3-4 days post-launch for a stable CPA baseline. Never set Target CPA at launch. Set within 10-20% of stable actual CPA; aspirational targets kill delivery.
 - **Never recommend switching TO Fixed Bid as a "fix"** for a fully-automated campaign that's working — it disables algorithmic optimisation. Recommend Maximize Conversions instead.
 

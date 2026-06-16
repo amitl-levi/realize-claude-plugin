@@ -53,7 +53,7 @@ The algorithm distributes the daily budget across the day to maximise performanc
 | Audience targeting | Too restrictive — broaden. |
 | Bidding (Enhanced CPC / Fixed) | Slightly increase bids to stay competitive. |
 | Bidding (Maximize Conversions) | Increase daily spend by up to 20%. |
-| Pace Ahead feature | Use to accelerate spend if needed. |
+| Pace Ahead feature (UI-only — not exposed via the Realize MCP) | Use to accelerate spend if needed; set in the Realize UI. |
 
 ### Depletion-Miss Investigation (when the campaign did not hit its cap)
 
@@ -110,7 +110,7 @@ Short-burst campaigns typically run **2-10 days** for promotions, launches, or t
 | Practice | Why |
 |---|---|
 | **Use a lifetime budget** instead of daily | Setting a lifetime budget for the full campaign duration allows unspent budget from earlier days to roll over, increasing the likelihood of full budget utilisation by end of flight. |
-| **Use Pace Ahead** | Accelerates spend for the specific campaign. |
+| **Use Pace Ahead** (UI-only — not exposed via the Realize MCP) | Accelerates spend for the specific campaign; set in the Realize UI. |
 | **Adopt competitive bidding for very short flights (≤7 days)** | Use Enhanced CPC with a competitive bid to improve auction competitiveness and accelerate spend. |
 | **Use Maximize Conversions for longer flights (> 7 days)** | Lets the algorithm leverage MaC learning and historical data to drive best performance. |
 | **Keep targeting broad** | Narrow audiences limit delivery within short timeframes. Broader targeting gives the algorithm more opportunities to spend efficiently and quickly. |
@@ -119,7 +119,7 @@ Short-burst campaigns typically run **2-10 days** for promotions, launches, or t
 
 | Flight Duration | Strategy |
 |---|---|
-| 2-3 days | Lifetime budget + Pace Ahead + broad targeting. Very short — focus on spend delivery over optimisation. |
+| 2-3 days | Lifetime budget + Pace Ahead + broad targeting. Very short — focus on spend delivery over optimisation. (Pace Ahead is UI-only — set in the Realize UI; the plugin cannot adjust it via MCP.) |
 | 4-7 days | Enhanced CPC with competitive bid + lifetime budget + broad targeting. |
 | > 7 days | Maximize Conversions if audience is large and budget meets the 10× rule. Use lifetime budget. Allows MaC learning to compound over the flight. |
 
@@ -167,4 +167,4 @@ This rule applies to budget post-mortems, A / B tests with different arm budgets
 - The 10× rule is **per campaign** — if you have 3 campaigns in a group, total group budget should be 3× the 10× requirement.
 - Budget-depletion issues with Maximize Conversions are almost never a bidding problem — the strategy is designed to spend the full budget. Check targeting, creatives, and supply first.
 - For seasonal campaigns, plan the budget curve: ramp up 3-5 days before the event, peak during, scale down after.
-- Pace Ahead is a powerful but underused feature for campaigns that need to accelerate delivery.
+- Pace Ahead is a powerful but underused feature for campaigns that need to accelerate delivery. **Note:** Pace Ahead is **not exposed via the Realize MCP** — it is a UI-only acceleration feature, set in the Realize UI after campaign creation. The plugin cannot enable or adjust Pace Ahead through `create_campaign` / `update_campaign`; if a user asks the plugin to enable it, refuse the write and route them to the Realize UI.
