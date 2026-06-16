@@ -97,16 +97,9 @@
         "creative review",
         "creative testing",
         "creative fatigue",
-        "social importer",
-        "Wilson score",
-        "statistical validity",
-        "validity tier",
-        "3P JS tag",
-        "1P-hosted display",
-        "create_display_item",
-        "create_native_item"
+        "social importer"
       ],
-      "description": "Sponsored Content ads, display ads (1P-hosted + 3P JS-tag paths via MCP), Gen AI AdMaker, landing pages, creative review, creative testing, and statistically conservative creative ranking via validity tiers + Wilson score lower bound."
+      "description": "Sponsored Content ads, display ads (overview), Gen AI AdMaker, landing pages, creative review process, creative testing, and creative fatigue. For Display item payload shape (3P `ad_tag` vs 1P `asset_url` + `dimensions`), see `targeting.md` → 'Native vs Display creative type'."
     },
     {
       "slug": "budget",

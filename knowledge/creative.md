@@ -6,6 +6,8 @@ Creatives are the first (and often only) impression an advertiser makes. In Spon
 
 > **Attribution note:** When reporting creative-level CPA or CVR, always specify the attribution model (e.g., `CPA (CT only)`, `CVR (Total CT+VT)`).
 
+> **Where the Display item MCP payload lives:** This file covers Display creative *strategy and review*. The **payload shape** for Display items via the MCP — `ad_tag` (3P JS tag) vs `asset_url` + `dimensions` (1P-hosted) — is documented in [`targeting.md`](targeting.md) under "Native vs Display creative type", because the lock-in interacts with campaign-type selection at create time.
+
 ---
 
 ## Sponsored Content Ads

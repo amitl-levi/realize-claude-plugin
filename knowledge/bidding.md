@@ -14,12 +14,14 @@ The campaign's primary KPI drives BOTH the `marketing_objective` AND the `bid_st
 
 | Primary KPI | Correct `marketing_objective` | Correct `bid_strategy` | Required additions |
 |---|---|---|---|
-| ROAS (return on ad spend) | `ONLINE_PURCHASES` | `MAX_VALUE` (preferred) or `MAX_CONVERSIONS` | Conversion rule attached (purchase event); `target_roas` if MAX_VALUE |
+| ROAS (return on ad spend) | `ONLINE_PURCHASES` | `MAX_VALUE` (preferred) or `MAX_CONVERSIONS` | Conversion rule (purchase event with value reporting); daily_cap per the per-strategy minimum (see "Bid Strategy × Budget minimums"). ROAS target (`roasGoal`) — see note below. |
 | CPA (cost per acquisition) for sales | `ONLINE_PURCHASES` | `TARGET_CPA` (with `cpa_goal`) or `MAX_CONVERSIONS` | Conversion rule attached (purchase event); daily_cap ≥ 10× cpa_goal |
 | CPL (cost per lead) | `LEADS_GENERATION` | `TARGET_CPA` or `MAX_CONVERSIONS` | Conversion rule (lead event); daily_cap ≥ 10× cpa_goal |
 | App installs | `MOBILE_APP_INSTALL` | `MAX_CONVERSIONS` | Conversion rule (install event); ad-tracking SDK |
 | Site traffic / engagement | `DRIVE_WEBSITE_TRAFFIC` | `SMART` (default) or `FIXED` (legacy) | None required |
 | Pure awareness / impressions / reach | `BRAND_AWARENESS` | `SMART` or `FIXED` | None required |
+
+> **Note on ROAS target (`roasGoal`):** Update-only, DCO accounts only, and **not currently exposed via the Realize MCP** — set in the Realize UI after creation. The plugin cannot adjust ROAS targets through `create_campaign` or `update_campaign`.
 
 ### Default bid strategy is MAX_CONVERSIONS, NOT FIXED
 
@@ -57,14 +59,15 @@ NEVER ship a campaign as BRAND_AWARENESS + FIXED CPC just because the pixel is m
 
 ## Bid Levers — What's Possible at Each Level
 
+> **Editing note:** This matrix is referenced as canonical by `skills/manage-campaigns/references/mcp-write-surface.md` §4 and `skills/optimize-campaign/references/optimization-flow.md` §6. Update those downstream copies alongside any change here.
+
 Before recommending any bid action, verify it is a valid lever for the campaign's bid strategy and the level you are operating at. The wrong recommendation gets rejected and erodes trust.
 
 | Action level | Enhanced CPC / Fixed Bid | Target CPA | Maximize Conversions | Maximize Value |
 |---|---|---|---|---|
-| **Campaign-level Target CPA** | n/a | ✅ | n/a | n/a (uses tROAS) |
-| **Campaign-level Target ROAS** | n/a | n/a | n/a | ✅ |
-| **Campaign-level CPC bid** | ✅ | ❌ algo decides | ❌ algo decides | ❌ algo decides |
-| **Campaign-level CPC cap** | ✅ | ✅ | ✅ | ✅ |
+| **Campaign-level Target CPA** | n/a | ✅ | n/a | n/a |
+| **Campaign-level CPC bid** | ✅ (both `SMART` and `FIXED`) | ❌ algo decides | ❌ algo decides | ❌ algo decides |
+| **Campaign-level CPC cap** | ❌ API 400 | ❌ API 400 | ✅ (last-resort) | ❌ API 400 |
 | **Campaign-level daily budget** | ✅ | ✅ | ✅ | ✅ |
 | **Publisher-level bid boost / de-boost** | ✅ | ❌ | ❌ | ❌ |
 | **Publisher-level block / unblock / whitelist** | ✅ | ✅ | ✅ | ✅ |
@@ -74,6 +77,8 @@ Before recommending any bid action, verify it is a valid lever for the campaign'
 | **Day-parting (hour blocks)** | ✅ | ✅ | ✅ | ✅ |
 
 **Legend:** ✅ valid lever · ❌ not available — algo / platform decides · n/a not applicable to this strategy
+
+> **Note on Target ROAS (`roasGoal`):** Target ROAS is **not exposed via the Realize MCP today** — it is update-only and DCO accounts only, settable in the Realize UI after creation. There is intentionally no Target ROAS row in this matrix because the plugin cannot adjust it. If a user asks the plugin to set ROAS, refuse the write and route them to the Realize UI.
 
 ### Per-item bidding does NOT exist in Realize
 

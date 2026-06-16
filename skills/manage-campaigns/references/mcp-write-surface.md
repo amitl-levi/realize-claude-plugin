@@ -14,23 +14,23 @@ Required fields on every create call:
 | `name` | string | Internal campaign name. See `knowledge/campaign-structure.md` for grouping + objective rules; no platform-imposed naming convention. |
 | `marketing_objective` | enum | One of: `BRAND_AWARENESS`, `DRIVE_WEBSITE_TRAFFIC`, `LEADS_GENERATION`, `ONLINE_PURCHASES`, `MOBILE_APP_INSTALL`. Locked at create — cannot be changed via `update_campaign`. |
 | `branding_text` | string | Shown publicly under each item. Use the brand name or product line. |
-| `spending_limit_model` | enum | `DAILY` or `LIFETIME`. Drives whether `spending_limit` is a daily cap or total flight budget. |
+| `spending_limit_model` | enum | One of `NONE`, `MONTHLY`, `ENTIRE`. Use `NONE` + `daily_cap` + `daily_ad_delivery_model="STRICT"` for a daily cap. Use `MONTHLY` or `ENTIRE` + `spending_limit` for monthly cap / lifetime (flight total). |
 | `bid_strategy` | enum | One of: `MAX_CONVERSIONS`, `TARGET_CPA`, `MAX_VALUE`, `SMART` (= Enhanced CPC in UI), `FIXED`. See Section 4 for the per-strategy field-gate matrix. |
 
 Optional but commonly-set scalars:
 
 | Field | Type | Used for |
 |---|---|---|
-| `spending_limit` | currency | The cap amount. Required when `spending_limit_model=DAILY` (daily cap) or `LIFETIME` (flight total). |
-| `daily_cap` | currency | Lifetime-mode campaigns can still set a daily ceiling. |
-| `cpc` | currency | Bid. **ONLY valid when `bid_strategy=FIXED`.** Reject the payload if set on any other strategy. |
+| `spending_limit` | currency | The cap amount. Required when `spending_limit_model=MONTHLY` (monthly cap) or `spending_limit_model=ENTIRE` (lifetime / flight total). For daily-only caps, use `spending_limit_model="NONE"` plus `daily_cap` instead — see the Maximize Conversions example below. |
+| `daily_cap` | currency | Daily spend ceiling. Pairs with `spending_limit_model="NONE"` + `daily_ad_delivery_model="STRICT"`. |
+| `cpc` | currency | Bid. **Valid only on `bid_strategy=SMART` (Enhanced CPC) or `bid_strategy=FIXED`.** Reject the payload on `TARGET_CPA` / `MAX_CONVERSIONS` / `MAX_VALUE`. |
 | `cpa_goal` | currency | Target CPA. **ONLY valid when `bid_strategy=TARGET_CPA`.** Reject otherwise. |
-| `cpc_cap` | currency | Optional ceiling on per-click cost. Valid on all strategies; last-resort lever on Maximize Conversions / Target CPA / Maximize Value (see `knowledge/bidding.md` "Bid Ceiling for Maximize Conversions"). |
-| `target_roas` | number | Target ROAS multiple. Used with `MAX_VALUE`. |
+| `cpc_cap` | currency | Optional ceiling on per-click cost. **Valid only on `bid_strategy=MAX_CONVERSIONS`** (last-resort lever; sending it on `TARGET_CPA` / `MAX_VALUE` / `SMART` / `FIXED` returns API 400). See `knowledge/bidding.md` "Bid Ceiling for Maximize Conversions". |
+| `roasGoal` (NOT writable via MCP) | number | Target ROAS multiple for `MAX_VALUE`. **Update-only**, **DCO accounts only**, and **not currently exposed by the MCP** — cannot be set on `create_campaign` or `update_campaign`. Set in the Realize UI after creation. |
 | `start_date`, `end_date` | ISO date | Flight dates. Optional `end_date` means always-on. |
 | `tracking_code` | string | UTM scheme / tracking parameters appended to outbound URLs. |
 | `comments` | string | Internal notes — link to source plan / ticket. |
-| `daily_ad_delivery_model` | enum | `BALANCED` (default) / `ACCELERATED`. Accelerated = Pace Ahead in UI. |
+| `daily_ad_delivery_model` | enum | `BALANCED` (default — smooths spend across the day; forbids `daily_cap`) / `STRICT` (tight daily pacing; **required when `daily_cap` is set**). Matches `skills/manage-campaigns/SKILL.md`. |
 | `traffic_allocation_mode` | enum | Defaults to algorithm-driven. |
 | `pricing_model` | enum | `CPC` (standard) or `VCPM` (Display only — locks campaign as Display at create time). See `knowledge/creative.md` for the two-path Native-vs-Display lock-in rule. |
 | `is_active` | boolean | **Always `false` on initial create.** Flipped to `true` only after the activation gate (see SKILL.md Step 6). |
@@ -73,14 +73,14 @@ All optional; populate where the request specifies. Item-level targeting does no
 | Field | Shape | Notes |
 |---|---|---|
 | `publisher_targeting` | `{type: INCLUDE|EXCLUDE|ALL, value: [publisher IDs]}` | `search_publishers`. Run the historical-top-N guard in `knowledge/site-management.md` before any EXCLUDE. |
-| `publisher_bid_modifier` | `[{publisher_id, modifier_pct}]` | **ONLY valid on `SMART` (Enhanced CPC) or `FIXED`.** Reject on Maximize Conversions / Target CPA / Maximize Value. |
+| `publisher_bid_modifier` | `{"values": [{"target": "<publisher_name>", "cpc_modification": <multiplier>}]}` (publisher **name** string, not ID; `cpc_modification` is a multiplier — `1.20` = +20%, `0.90` = −10%) | **ONLY valid on `SMART` (Enhanced CPC) or `FIXED`.** Reject on Maximize Conversions / Target CPA / Maximize Value. |
 | `predefined_premium_site_targeting` | enum | `ALL` / `PREMIUM` / `REGULAR`. Confirm account permission before setting. |
 
 ### Conversion + dayparting
 
 | Field | Shape | Notes |
 |---|---|---|
-| `conversion_rules` | `[{rule_id, ...}]` | Use `search_conversion_rules` to resolve. Required for performance objectives (ONLINE_PURCHASES / LEADS_GENERATION / MOBILE_APP_INSTALL) — see `knowledge/bidding.md` "When the conversion rule isn't ready yet" for the placeholder-rule recipe. |
+| `conversion_rules` | `{"rules": [{"id": <integer_rule_id>}, ...]}` (object containing a `rules` list; key is `id` and value is an **integer**, not `rule_id` / string) | Use `search_conversion_rules` to resolve. Required for performance objectives (ONLINE_PURCHASES / LEADS_GENERATION / MOBILE_APP_INSTALL) — see `knowledge/bidding.md` "When the conversion rule isn't ready yet" for the placeholder-rule recipe. |
 | `activity_schedule` | `{time_zone, days: [{day, hours}]}` | Dayparting. `time_zone` resolved via `list_time_zones`. Don't apply at launch without data (per `knowledge/campaign-structure.md`). |
 
 ## 3. Item-level write tools
@@ -131,8 +131,9 @@ Use to edit any campaign field after creation. Common patterns:
 | Intent | Field(s) to update |
 |---|---|
 | Pause / resume campaign | `is_active` |
-| Change daily budget | `spending_limit` (with `spending_limit_model=DAILY`) |
-| Move budget cadence to lifetime | `spending_limit_model=LIFETIME` + `spending_limit` (total) |
+| Change daily budget | `daily_cap` (with `spending_limit_model="NONE"` + `daily_ad_delivery_model="STRICT"`) |
+| Move budget cadence to monthly | `spending_limit_model="MONTHLY"` + `spending_limit` (monthly cap amount) |
+| Move budget cadence to lifetime / entire flight | `spending_limit_model="ENTIRE"` + `spending_limit` (total amount) |
 | Block / unblock a publisher | `publisher_targeting` (full block-list — pass the new INCLUDE/EXCLUDE set) |
 | Add per-publisher bid modifier (Enhanced CPC / Fixed Bid only) | `publisher_bid_modifier` |
 | Tighten or broaden targeting | the relevant targeting block (`country_targeting`, `platform_targeting`, etc.) |
@@ -152,11 +153,11 @@ The canonical matrix lives in `knowledge/bidding.md` ("Bid Levers — What's Pos
 
 | Action level | Enhanced CPC (`SMART`) / Fixed Bid | Target CPA | Maximize Conversions | Maximize Value |
 |---|---|---|---|---|
-| **Campaign-level Target CPA** (`cpa_goal`) | n/a | ✅ | n/a | n/a (uses `target_roas`) |
-| **Campaign-level Target ROAS** (`target_roas`) | n/a | n/a | n/a | ✅ |
-| **Campaign-level CPC bid** (`cpc`) | ✅ (`FIXED` only) | ❌ algo decides | ❌ algo decides | ❌ algo decides |
-| **Campaign-level CPC cap** (`cpc_cap`) | ✅ | ✅ | ✅ (last-resort) | ✅ (last-resort) |
-| **Campaign-level daily budget** (`spending_limit`) | ✅ | ✅ | ✅ | ✅ |
+| **Campaign-level Target CPA** (`cpa_goal`) | n/a | ✅ | n/a | n/a |
+| **Campaign-level CPC bid** (`cpc`) | ✅ (both `SMART` and `FIXED`) | ❌ algo decides | ❌ algo decides | ❌ algo decides |
+| **Campaign-level CPC cap** (`cpc_cap`) | ❌ API 400 | ❌ API 400 | ✅ (last-resort) | ❌ API 400 |
+| **Campaign-level daily budget** (`daily_cap` with `spending_limit_model="NONE"`) | ✅ | ✅ | ✅ | ✅ |
+| **Campaign-level monthly / lifetime cap** (`spending_limit` with `spending_limit_model="MONTHLY"` or `"ENTIRE"`) | ✅ | ✅ | ✅ | ✅ |
 | **Publisher-level bid boost / de-boost** (`publisher_bid_modifier`) | ✅ | ❌ | ❌ | ❌ |
 | **Publisher-level block / unblock / whitelist** (`publisher_targeting`) | ✅ | ✅ | ✅ | ✅ |
 | **Item-level bid, priority, weight** | ❌ never | ❌ never | ❌ never | ❌ never |
@@ -164,10 +165,14 @@ The canonical matrix lives in `knowledge/bidding.md` ("Bid Levers — What's Pos
 | **Item-level create / edit** | ✅ | ✅ | ✅ | ✅ |
 | **Day-parting** (`activity_schedule`) | ✅ | ✅ | ✅ | ✅ |
 
+> **Target ROAS (`roasGoal`)** intentionally has no row in this matrix because it is **not exposed via the MCP** (update-only, DCO accounts only — see scalar field table). If a user asks to set ROAS, refuse the write and route them to the Realize UI.
+
 **Refuse and reframe** any payload that violates the matrix:
 
 - `publisher_bid_modifier` on Maximize Conversions / Target CPA / Maximize Value → reframe as `publisher_targeting` block / whitelist.
-- `cpc` on a non-`FIXED` campaign → reframe as `cpc_cap` (if a ceiling is the intent) or remove (the algorithm decides).
+- `cpc` on `TARGET_CPA` / `MAX_CONVERSIONS` / `MAX_VALUE` → reframe as `cpc_cap` only if the strategy is `MAX_CONVERSIONS`; otherwise remove (the algorithm decides).
+- `cpc_cap` on `TARGET_CPA` / `MAX_VALUE` / `SMART` / `FIXED` → remove (API 400). Only `MAX_CONVERSIONS` accepts `cpc_cap` today.
+- Any request to set `target_roas` / `roasGoal` on any write → refuse; route to the Realize UI.
 - `cpa_goal` on a non-`TARGET_CPA` campaign → reject; the field only takes effect on Target CPA.
 - Any item-level bid / priority / weight field — these don't exist on Realize. Reframe as pause / activate / create / duplicate / edit.
 
@@ -193,9 +198,9 @@ The canonical matrix lives in `knowledge/bidding.md` ("Bid Levers — What's Pos
 | Tool | Returns | Use after |
 |---|---|---|
 | `get_campaign(account_id, campaign_id)` | Full campaign object | Single-campaign readback after `create_campaign` or `update_campaign`. |
-| `get_all_campaigns(account_id)` | All campaigns on the account | Account-level rollup after a batch create. |
-| `get_campaign_items(account_id, campaign_id)` | All items on a campaign | After `create_*_item` / `update_*_item`. |
-| `get_campaign_item(account_id, campaign_id, item_id)` | Single item | After a targeted item edit. |
+| `list_campaigns(account_id)` | All campaigns on the account | Account-level rollup after a batch create. |
+| `list_items(account_id, campaign_id)` | All items on a campaign | After `create_*_item` / `update_*_item`. |
+| `get_item(account_id, campaign_id, item_id)` | Single item | After a targeted item edit. |
 
 ## 6. Common payload patterns
 
@@ -207,11 +212,12 @@ create_campaign(
   name="<name>",
   marketing_objective="ONLINE_PURCHASES",
   branding_text="<brand>",
-  spending_limit_model="DAILY",
-  spending_limit=<daily_cap_currency>,   # ≥ 10× CPA goal
+  spending_limit_model="NONE",            # enum: NONE | MONTHLY | ENTIRE — daily cap uses NONE + daily_cap below
+  daily_cap=<daily_cap_currency>,         # ≥ 10× CPA goal
+  daily_ad_delivery_model="STRICT",       # required when daily_cap is set
   bid_strategy="MAX_CONVERSIONS",
   pricing_model="CPC",
-  conversion_rules=[{"rule_id": "<resolved_rule_id>"}],
+  conversion_rules={"rules": [{"id": <resolved_rule_id_int>}]},
   country_targeting={"type": "INCLUDE", "value": ["US"]},
   is_active=False,
 )
@@ -223,24 +229,27 @@ create_campaign(
 create_campaign(
   ...,
   bid_strategy="TARGET_CPA",
-  cpa_goal=<currency>,          # within 10-20% of stable actual CPA (see knowledge/bidding.md)
-  spending_limit=<≥ 10× cpa_goal>,
+  cpa_goal=<currency>,                    # within 10-20% of stable actual CPA (see knowledge/bidding.md)
+  spending_limit_model="NONE",            # daily cap uses NONE + daily_cap (same pattern as MAX_CONVERSIONS above)
+  daily_cap=<≥ 10× cpa_goal>,             # 10× CPA goal/day — same floor as MAX_CONVERSIONS
+  daily_ad_delivery_model="STRICT",       # required when daily_cap is set
   is_active=False,
 )
 ```
 
-### Maximize Value campaign with target ROAS
+### Maximize Value campaign
 
 ```
 create_campaign(
   ...,
   marketing_objective="ONLINE_PURCHASES",
   bid_strategy="MAX_VALUE",
-  target_roas=<multiple>,        # e.g., 2.5 for 250% ROAS
-  conversion_rules=[{...}],      # purchase event with value reporting
+  conversion_rules={"rules": [{"id": <resolved_rule_id_int>}]},   # purchase event with value reporting
   is_active=False,
 )
 ```
+
+> ROAS target (`roasGoal` in the API) is **update-only**, **DCO accounts only**, and **not currently exposed by the MCP**. It cannot be set on `create_campaign`. If a user asks to set ROAS, fall back to the Realize UI.
 
 ### Enhanced CPC (SMART) with per-publisher bid modifiers
 
@@ -249,10 +258,12 @@ create_campaign(
   ...,
   bid_strategy="SMART",
   cpc=<base_bid>,
-  publisher_bid_modifier=[
-    {"publisher_id": <id>, "modifier_pct": +20},
-    {"publisher_id": <id>, "modifier_pct": -10},
-  ],
+  publisher_bid_modifier={
+    "values": [
+      {"target": "<publisher_name>", "cpc_modification": 1.20},   # +20% — multiplier, not delta
+      {"target": "<publisher_name>", "cpc_modification": 0.90},   # -10%
+    ],
+  },
   is_active=False,
 )
 ```
@@ -290,12 +301,11 @@ update_campaign(
 
 ### Block a publisher mid-flight
 
-Pre-step: run the historical-top-N publisher block guard in `knowledge/site-management.md`. If the publisher is top-N, require explicit user confirmation in the Step 4 batch block.
+The full chain — name resolution via `search_publishers`, historical-top-N guard, get → merge → preview-with-resolved-names → confirm → write → verify — is the canonical recipe in **[`skills/manage-campaigns/SKILL.md` → "Publisher block-list edits — recipe"](../SKILL.md)**. Payload-shape sketch only (see SKILL.md for the AskUserQuestion confirm gate, unblock + whitelist-mode-switch cases, and the side-by-side preview):
 
 ```
-# Fetch current targeting first, then append the EXCLUDE
-current = get_campaign(account_id=<id>, campaign_id=<id>)
-new_block = current.publisher_targeting.value + [<publisher_id>]
+# After resolving names → IDs via search_publishers and reading current state via get_campaign:
+new_block = list(dict.fromkeys(current.publisher_targeting.value + [<publisher_id>]))    # de-dupe, preserve order
 update_campaign(
   account_id=<id>, campaign_id=<id>,
   publisher_targeting={"type": "EXCLUDE", "value": new_block},
@@ -320,7 +330,7 @@ update_campaign(
 | `knowledge/bidding.md` | Bid strategy mechanics, Bid Levers matrix (canonical), Learning-Period Guard, KPI → objective mapping. |
 | `knowledge/budget.md` | 10× CPA rule, pacing, scaling, depletion-miss investigation. |
 | `knowledge/campaign-structure.md` | Native vs Display lock-in (two-path), platform/device splits, Campaign Groups, Realize+ context. |
-| `knowledge/creative.md` | Native vs Display creative requirements, 3P JS-tag validator allowlist + recipe, Wilson-score ranking. |
+| `knowledge/creative.md` | Sponsored Content + Display creative strategy, Gen AI AdMaker, landing pages, creative review, testing, fatigue. (Display item payload shape — `ad_tag` 3P vs `asset_url` + `dimensions` 1P — lives in `knowledge/targeting.md`. Wilson-score creative ranking lives in `skills/optimize-campaign/references/optimization-flow.md` §3.) |
 | `knowledge/targeting.md` | Marketplace vs account-resident audiences, Tier-1 markets, 6-dimension narrow-targeting diagnostic, small-market caveat. |
 | `knowledge/site-management.md` | Historical-top-N publisher block guard, block-attribution framework. |
 | `knowledge/brand-safety.md` | DV / IAS pre-bid, topic exclusions. |

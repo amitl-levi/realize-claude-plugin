@@ -124,12 +124,14 @@ Listed with the source article, a one-line description of what the ability would
 
 ### 3.C — Targeting & audience writes
 
+**Closed gaps in this section:**
+- ~~`update_blocklist`~~ — **covered** as of upstream Jun 15 2026 ("Add structured support: Block List via MCP" — Chris Hall) via `update_campaign(publisher_targeting={type:"EXCLUDE", value:[<ids>]})`. Read current state with `get_campaign.publisher_targeting`, merge client-side (full-replace within the dimension), preview, write. See `skills/manage-campaigns/SKILL.md` → "Publisher block-list edits — recipe".
+
 | Future ability | Does what | Today's UI path | Source |
 |---|---|---|---|
 | `update_targeting` | Adjust Location / Platform / Device / Connection / OS / Browser on a campaign | Campaign → Targeting | Setup + Optimization |
 | `list_audiences` / `create_audience` | List account audiences or create from pixel/events | `Audiences → New Audience` | Retargeting |
 | `attach_audience_to_campaign` | Add `My Audiences` / Taboola First Party Audiences / Contextual or suppression audience to a campaign | Campaign → Audience Targeting | Setup Step 7 |
-| `update_blocklist` | Add/remove sites from the campaign's block list | Advanced Options → Block Sites | Optimization |
 | `toggle_brand_safety_pre_bid` | Enable/disable the brand-safety filter | Advanced Options | Setup Step 6 |
 | `setup_campaign_clicker_retargeting` | The IMG-tag-in-3rd-party-pixels flow that builds an audience from campaign clickers (~2 week build) | `Audiences → New Audience → From Pixel → Campaign Clickers`, then paste IMG tag into the originating campaign | Retargeting article |
 
@@ -166,12 +168,14 @@ This is the single largest capability gap. The plugin cannot advise on conversio
 
 Even within the existing read-only surface, there are analytical questions Claude cannot answer without multiple manual calls and post-processing.
 
+**Closed gaps in this section:**
+- ~~Site-level blocklist state inspection~~ — **covered** via `get_campaign.publisher_targeting` (upstream returns the field as of the Jun 15 2026 structured-support change). Mandatory read before any block-list write so the merge step has the current state.
+
 | Future ability | Does what | Why it's a gap |
 |---|---|---|
 | Period-over-period comparison in one call | Return two time windows and deltas | Current reports are single-window; Claude must fetch twice and diff |
 | Attribution-window / cohort analytics | Which conversions came from which campaign cohort, over what lag | Not exposed by any tool |
 | Audience / segment performance breakdown | Performance per audience attached to a campaign | Not exposed |
-| Site-level blocklist state inspection | Read current block list on a campaign to advise edits against current state | May not be in `get_campaign`; upstream docs don't confirm |
 | Scheduling state inspection | Read dayparting / 24-7 / custom-hours config on a campaign | Unconfirmed against upstream docs |
 | Targeting state inspection | Read Location / Platform / Device / Audience state on a campaign | Unconfirmed against upstream docs |
 

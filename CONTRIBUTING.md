@@ -34,7 +34,9 @@ Thanks for your interest in improving the Realize Claude Plugin. Contributions o
 - [ ] CHANGELOG entry added
 - [ ] Frontmatter + JSON validates
 - [ ] At least one test scenario touches the new behavior
-- [ ] No write paths added to MCP tools
+- [ ] Any new MCP write tool routes through the `manage-campaigns` skill on Claude Code, and the preview-then-confirm gate in `os/guardrails.md` covers it for every runtime (Codex included)
+- [ ] New write paths have a scenario in `tests/test-scenarios-write.md` with explicit side-effects + cleanup
+- [ ] Pre-approval of new write tools stays out of the committed `.claude/settings.json` — per-user opt-in goes through the gitignored `.claude/settings.local.json` template instead
 - [ ] No secrets, tokens, or account-specific data in committed files
 
 ## Contact

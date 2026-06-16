@@ -11,15 +11,5 @@
         ]
       }
     ]
-  },
-  "permissions": {
-    "allow": [
-      "mcp__realize-mcp__create_campaign",
-      "mcp__realize-mcp__update_campaign",
-      "mcp__realize-mcp__create_native_item",
-      "mcp__realize-mcp__update_native_item",
-      "mcp__realize-mcp__create_display_item",
-      "mcp__realize-mcp__update_display_item"
-    ]
   }
 }

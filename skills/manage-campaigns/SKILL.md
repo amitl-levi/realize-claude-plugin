@@ -47,9 +47,9 @@ If the user wants Display, ask which path before creating: VCPM lock-in vs CPC-w
 
 The MCP will accept invalid combinations silently (some fields are ignored on certain strategies). Refuse them at preview time instead:
 
-- `cpc` (scalar bid) — only on `bid_strategy=FIXED`.
+- `cpc` (scalar bid) — only on `bid_strategy=SMART` (Enhanced CPC) or `bid_strategy=FIXED` (see `knowledge/bidding.md` L62–66).
 - `cpa_goal` — only on `bid_strategy=TARGET_CPA`.
-- `cpc_cap` — valid on all strategies (last-resort ceiling on `MAX_CONVERSIONS` / `TARGET_CPA` / `MAX_VALUE`; see `knowledge/bidding.md`).
+- `cpc_cap` — valid only on `bid_strategy=MAX_CONVERSIONS` (last-resort ceiling; sending it on `TARGET_CPA` / `MAX_VALUE` / `SMART` / `FIXED` returns API 400). See `knowledge/bidding.md`.
 - `publisher_bid_modifier` — only on **Enhanced CPC** or **Fixed Bid**. On `MAX_CONVERSIONS` / `TARGET_CPA` / `MAX_VALUE`, the only per-publisher lever is **block / unblock / whitelist** via `publisher_targeting`. Surfacing a per-publisher bid move on those strategies is a forbidden pattern — re-frame as a block.
 - Per-item bid changes don't exist on any Realize strategy. Reframe as pause / activate / create / duplicate.
 
@@ -153,9 +153,10 @@ Use `AskUserQuestion` for any required field the user did not supply. Validate a
 | Bid Strategy | Minimum daily budget |
 |---|---|
 | `MAX_CONVERSIONS` | **10× the CPA goal** per day (learning-phase stability with conversion optimization). |
-| `TARGET_CPA` | **5× the CPA goal** per day, with a **150× CPA monthly** minimum. |
+| `TARGET_CPA` | **10× the CPA goal** per day ($50/day minimum if CPA < $5). Same floor as `MAX_CONVERSIONS` — see `knowledge/bidding.md`. |
+| `SMART` (Enhanced CPC) | **5× the CPA goal** per day, with a **150× CPA monthly** minimum. |
 | `FIXED` | Per client requirements; no published Taboola minimum. |
-| `SMART`, `MAX_VALUE` | Per client requirements; surface the formula but don't block on a hard minimum unless the user supplies a CPA goal. |
+| `MAX_VALUE` | Per client requirements; surface the formula but don't block on a hard minimum unless the user supplies a CPA goal. |
 
 For non-conversion campaigns (objective = `BRAND_AWARENESS` / `DRIVE_WEBSITE_TRAFFIC`): target **100–200 clicks per day** as the minimum data volume. Budget = `cpc × desired_clicks_per_day`. Example: $0.50 CPC × 100–200 clicks/day → $50–$100/day.
 
@@ -244,6 +245,40 @@ Mandatory pattern:
 6. On Yes, call `update_campaign` with the FULL merged block.
 
 Never construct a targeting block payload without rendering the side-by-side `Current → After update` view in the preview — the user catches accidental deletions there.
+
+#### Publisher block-list edits — recipe
+
+Publisher block / unblock / whitelist requests ("block ESPN on this campaign", "unblock NYTimes", "whitelist these 3 sites") are the most common optimization-side write. They route through `update_campaign.publisher_targeting` — there is **no dedicated `update_blocklist` MCP tool**. The full-replace gotcha above applies.
+
+`publisher_targeting` shape: `{type: INCLUDE|EXCLUDE|ALL, value: [publisher IDs]}`. `EXCLUDE` is a block list, `INCLUDE` is a whitelist (approved-list mode), `ALL` clears the gate.
+
+Mandatory chain:
+
+1. Resolve the publisher names → IDs via `search_publishers(account_id, query=...)`. Never accept a publisher name as the write input; the field requires integer IDs.
+2. Call `get_campaign(account_id, campaign_id)` and read the current `publisher_targeting` block.
+3. Merge:
+   - **Block** ("block ESPN") with current `{type:"EXCLUDE", value:[10,12]}` and resolved ESPN id `=14` → merged `{type:"EXCLUDE", value:[10,12,14]}`.
+   - **Unblock** ("unblock site 12") with current `{type:"EXCLUDE", value:[10,12,14]}` → merged `{type:"EXCLUDE", value:[10,14]}`.
+   - **Switch to whitelist** ("only allow ESPN, NYT") — confirm the user understands the side-effect of moving from EXCLUDE-mode to INCLUDE-mode (everything not on the list stops serving) before previewing.
+4. Run the **historical-top-N block guard** from `knowledge/site-management.md` on every publisher about to be blocked. If a candidate-to-block is currently a top performer, surface the warning and ask the user to confirm before continuing.
+5. Render the preview with the side-by-side current → after view:
+   ```
+   ▶ WRITE TARGET: <account_name> (<account_id>)
+
+   About to call update_campaign on campaign_id=<id> ("<name>").
+
+   ⚠ Targeting full-replace — this overwrites the entire publisher_targeting section.
+   Current publisher_targeting: {type: "EXCLUDE", value: [10, 12]}
+   After update:                {type: "EXCLUDE", value: [10, 12, 14]}
+
+   Resolved names:
+     +14  ESPN Network - ESPN.com
+   ```
+6. `AskUserQuestion`: "Submit this `update_campaign` call?" Yes / Edit / Cancel.
+7. On Yes, call `update_campaign(account_id, campaign_id, publisher_targeting={...full merged block...})`.
+8. Verify with a follow-up `get_campaign` — confirm the new block-list state matches what was previewed.
+
+Never call `update_campaign(publisher_targeting=...)` without reading the existing block first. The full-replace semantics mean an unmerged write deletes every pre-existing block / whitelist entry the user didn't restate — silently.
 
 ## Creating a native item
 

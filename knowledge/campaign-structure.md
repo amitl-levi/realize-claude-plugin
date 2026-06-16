@@ -8,6 +8,8 @@ Campaign structure determines how budgets are distributed, how the algorithm opt
 
 ## Campaign Groups
 
+> **MCP support status:** Campaign Group assignment is **not exposed via the Realize MCP today.** `create_campaign` and `update_campaign` accept no `campaign_group_id` parameter. The conceptual guidance below applies to planning. Group creation and campaign-to-group assignment are UI-only actions — when a user asks the plugin to "put this campaign in group X", treat it as a UI-only action and tell the user to set the group in the Realize UI after the campaign exists.
+
 ### What Campaign Groups Do
 
 A **Campaign Group** is a layer between the account and campaigns:
@@ -61,9 +63,9 @@ Combining Desktop + Mobile + Tablet under a single campaign is a common mistake.
 | `DESK` alone | Always split desktop from mobile. Different bid markets, different creative best-practice. |
 | `PHON + TBLT` together | Mobile-first builds where tablet is a small share. Acceptable compromise. |
 | `PHON` alone, `TBLT` alone | When the campaign requires different creative or KPIs per device. |
-| `DESK + PHON + TBLT` ALL in one campaign | ONLY when a unified buy is explicitly required, or when budget is so small that splitting would kill algo learning (under ~$5K total). |
+| `DESK + PHON + TBLT` ALL in one campaign | ONLY when a unified buy is explicitly required, or when splitting would drop each platform below the algo's learning threshold (see per-day rule below). |
 
-When budget per campaign would fall below the algo's learning threshold after splitting (Realize rule of thumb: < $1k/day for MAX_CONVERSIONS, < $500/day for FIXED), bundle platforms and note the reason for bundling.
+When budget per campaign would fall below the algo's learning threshold after splitting (Realize rule of thumb: **< $1k/day for `MAX_CONVERSIONS` / `TARGET_CPA`, < $500/day for `FIXED`**), bundle platforms and note the reason for bundling. Use the per-day, strategy-specific threshold — don't substitute a flat total-budget figure.
 
 ### Budget Distributor Behaviour
 

@@ -97,10 +97,10 @@ scan_fail "Realize as a verb"               '(realize\s+your\s+(campaigns|goals|
 # 2. Privacy / safety absolute claims
 scan_fail "Absolute privacy / safety claim" '(100%\s+brand\s+safe|gdpr\s+compliant|no\s+cookies\s+needed|we\s+don'\''t\s+collect\s+any\s+data|fully\s+anonymous\s+targeting|we\s+track\s+users\s+across\s+the\s+web|we\s+know\s+everything\s+about)' "${PUBLIC[@]}"
 
-# 3. Internal codenames and schema
-scan_fail "Internal codename: Backstage"    '\bbackstage\b' "${PUBLIC[@]}"
-scan_fail "Internal codename: blindspot"    '\bblindspot\b' "${PUBLIC[@]}"
-scan_fail "Schema / column names"           '\b(syndicator_id|affiliate_id|unip_rules|campaign_history)\b' "${PUBLIC[@]}"
+# 3. Banned codenames and schema (enforced as a defense-in-depth layer alongside guardrails.md → Banned brand variations / Internal field names)
+scan_fail "Banned codename: Backstage"      '\bbackstage\b' "${PUBLIC[@]}"
+scan_fail "Banned codename: blindspot"      '\bblindspot\b' "${PUBLIC[@]}"
+scan_fail "Banned schema / column names"    '\b(syndicator_id|affiliate_id|unip_rules|campaign_history)\b' "${PUBLIC[@]}"
 scan_fail "Internal data-store: Vertica"    '\bvertica\b' "${PUBLIC[@]}"
 scan_fail "Internal data-store: trc schema" '\b(from\s+trc\.|trc\.(sp_|unip_|agg_))' "${PUBLIC[@]}"
 # Match employee-shaped emails (first.last@taboola.com) but NOT support@/billing@ aliases.

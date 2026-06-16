@@ -130,7 +130,7 @@ Shared by both paths. Detecting fatigue and triggering refresh decisions. Anchor
 
 ### Wilson-score ranking for creative comparisons
 
-When ranking creatives by CVR, **raw CVR is misleading at small sample sizes.** Use the Wilson score 95% confidence interval lower bound for conservative ranking (full statistical framework in `knowledge/creative.md`).
+When ranking creatives by CVR, **raw CVR is misleading at small sample sizes.** Use the Wilson score 95% confidence interval lower bound for conservative ranking.
 
 Example: Ad A (5000 clicks, 150 conv, raw CVR 3.0%, Wilson lower 2.56%) vs Ad C (50 clicks, 3 conv, raw CVR 6.0%, Wilson lower 2.07%). Ad C has the higher raw CVR but Ad A's lower bound is higher — Ad A is the safer bet for scaling.
 
@@ -212,7 +212,7 @@ The canonical bid-lever matrix lives in `knowledge/bidding.md` ("Bid Levers — 
 | Bid Strategy | Optimises for | Valid action set |
 |---|---|---|
 | Maximize Conversions | Conversion volume | Structural levers only: site blocks, ad pause / refresh, budget changes, targeting changes, CPC cap (last-resort). Algorithm sets the bid. |
-| Maximize Value | Conversion value | Same as Maximize Conversions, plus `target_roas` adjustment. |
+| Maximize Value | Conversion value | Same structural levers as Maximize Conversions. ROAS target (`roasGoal`) is UI-only on DCO accounts — **not exposed via MCP**, so the optimize-campaign workflow cannot adjust it directly. |
 | Target CPA | Conversions at target cost | Same as Maximize Conversions, plus Target CPA adjustment (last-resort lever — see hard rules below). |
 | Enhanced CPC | Conversions with CPC control | Full set: CPC bid changes, per-publisher bid boost / de-boost, structural levers. |
 | Fixed Bid (incl. VCPM Display) | Impressions at manual cost | Full set: bid changes, structural levers. |
@@ -389,7 +389,7 @@ Every walk through this flow produces:
 |---|---|
 | `knowledge/bidding.md` | Bid strategy mechanics, learning-period guard, bid-levers matrix (the canonical version). |
 | `knowledge/budget.md` | Budget pacing, depletion-miss investigation, cross-period comparison discipline. |
-| `knowledge/creative.md` | Wilson-score creative ranking, validity tiers, fatigue checks, 3P-tag handling. |
+| `knowledge/creative.md` | Sponsored Content + Display creative strategy, Gen AI AdMaker, landing pages, creative review, testing, fatigue checks. (Wilson-score ranking is in §3 of this file, not in `creative.md`. Display item payload shape lives in `knowledge/targeting.md`.) |
 | `knowledge/targeting.md` | 6-dimension narrow-targeting diagnostic, Tier-1 market check, small-market caveat. |
 | `knowledge/site-management.md` | Publisher block decisions, historical-top-N block guard, block-attribution framework. |
 | `knowledge/custom-rules.md` | SpendGuard, Custom Rules best practices, learning-phase rule. |

@@ -115,6 +115,46 @@ A `▶ WRITE TARGET: <account_name> (<account_id>)` header must appear on every 
 
 ---
 
+## W4b. Block a publisher (publisher_targeting full-replace gotcha)
+
+**Prerequisite:** A campaign on the test account with at least one publisher already in `publisher_targeting.value` (EXCLUDE-mode); note its `campaign_id` as `<test_campaign_id>` and the pre-existing block list as `<existing_block_ids>` (e.g., `[10, 12]`). Pick a publisher to add (e.g., ESPN) — resolve its ID via `search_publishers` and call it `<new_block_id>`.
+
+**User prompt:**
+> "Block ESPN on campaign <test_campaign_id>."
+
+**Expected side effects:** `publisher_targeting.value` extends from `<existing_block_ids>` to `<existing_block_ids> + [<new_block_id>]`. Campaign re-enters 24–48h review.
+
+**Expected flow:**
+1. `manage-campaigns` skill activates (NOT a UI redirect — block-list edits are MCP-supported via `update_campaign.publisher_targeting`).
+2. Calls `search_publishers(account_id, query="ESPN")` to resolve the name → publisher ID.
+3. Calls `get_campaign`, reads `publisher_targeting.value` (e.g., `{type:"EXCLUDE", value:[10,12]}`).
+4. Runs the historical-top-N block guard from `knowledge/site-management.md` against `<new_block_id>`. If ESPN is currently a top performer, surfaces a warning and asks for explicit go-ahead before continuing.
+5. Merges client-side → `{type:"EXCLUDE", value:[10,12,<new_block_id>]}`.
+6. Renders preview with the side-by-side view:
+   ```
+   ▶ WRITE TARGET: <account_name> (<account_id>)
+   ⚠ Targeting full-replace — this overwrites the entire publisher_targeting section.
+   Current publisher_targeting: {type: "EXCLUDE", value: [10, 12]}
+   After update:                {type: "EXCLUDE", value: [10, 12, <new_block_id>]}
+
+   Resolved names:
+     +<new_block_id>  ESPN Network - ESPN.com
+   ```
+7. `AskUserQuestion` → Yes.
+8. Calls `update_campaign(account_id=..., campaign_id=<test_campaign_id>, publisher_targeting={type:"EXCLUDE", value:[10,12,<new_block_id>]})`.
+9. Verifies with `get_campaign` — confirms the new block-list state matches the preview.
+
+**Pass criteria:**
+- Skill activates (not the agent's UI-only refusal).
+- `search_publishers` runs BEFORE the write to resolve name → ID — payload uses the integer ID, never the publisher name string.
+- `get_campaign` runs BEFORE the write to read the current block list.
+- The submitted `publisher_targeting.value` contains the FULL merged list (`[10, 12, <new_block_id>]`), not just `[<new_block_id>]`. If Claude attempts to send `{value:[<new_block_id>]}` alone, that's a test failure — it would silently wipe the pre-existing blocks.
+- Header present. Side-by-side current/after view is in the preview. Resolved-name annotation surfaces the human-readable mapping.
+
+**Cleanup:** `update_campaign(publisher_targeting={type:"EXCLUDE", value:<existing_block_ids>})` to restore the original block-list state. Also full-replace; same preview rules apply.
+
+---
+
 ## W5. Update item headline (status-gated)
 
 **Prerequisite:** An item on the test account; note its `item_id` as `<test_item_id>` and its parent `campaign_id`.
