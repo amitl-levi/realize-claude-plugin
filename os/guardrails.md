@@ -69,7 +69,10 @@ The values come from the `search_accounts` result for the current session. Do no
 ### Confirmation flow
 
 1. Resolve / validate inputs (including `account_id` via `search_accounts`).
-2. For updates: `get_campaign` or `get_item` to capture current state. **For list-replace fields** (`publisher_targeting`, `country_targeting`, `platform_targeting`, `audience_targeting`, `audience_targeting_excluded`, `contextual_segments`, and any other array-valued field), the MCP performs a **full replace** — sending a partial list silently wipes the rest. After fetching current state, merge the user's intended additions / removals into the existing array client-side and submit the full merged list. Never send a delta.
+2. For updates: `get_campaign` or `get_item` to capture current state.
+   - **Merge full-replace fields client-side before writing.** Targeting blocks and item-update array fields are full-replace within their section — sending a partial list silently wipes the rest. After fetching current state, merge the user's intended additions / removals into the existing array and submit the full merged list. Never send a delta.
+   - Full-replace targeting blocks: `publisher_targeting`, `country_targeting`, `region_country_targeting`, `dma_country_targeting`, `city_targeting`, `postal_code_targeting`, `platform_targeting`, `os_targeting`, `audiences_targeting`, `contextual_segments_targeting`, `lookalike_audience_targeting`.
+   - Full-replace item arrays (on `update_native_item` / `update_display_item`): `verification_pixel`, `viewability_tag`.
 3. Render the preview, leading with the `▶ WRITE TARGET` header.
 4. Ask the user to confirm — explicit Yes / No / Edit (Claude Code uses `AskUserQuestion`; on Codex or other hosts, render the question and **wait for an explicit user reply** before any write).
 5. On **Yes** → call the write tool exactly once.
