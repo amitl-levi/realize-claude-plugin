@@ -68,7 +68,7 @@ This plugin wraps the remote [realize-mcp](https://github.com/taboola/realize-mc
 | [`optimize-campaign`](skills/optimize-campaign/SKILL.md) | Diagnose underperforming campaigns against the toolkit's signal-quality thresholds (100+ clicks per item, daily spend ≥ 8× CPA goal, 7–14 day learning phase) and prescribe concrete actions (most now applied via `manage-campaigns`) |
 | [`manage-campaigns`](skills/manage-campaigns/SKILL.md) | Create and update campaigns and Native + Display items. Tiered preview-and-confirm pattern surfaces the target account on every write. Falls back to a UI reference for actions not supported here (delete, duplicate, bulk ops, Custom Rules, conversion-rule creation, CRM uploads) |
 
-The plugin also ships one agent, [`realize-analyst`](agents/realize-analyst.md), which routes natural-language questions to the right skill/tool and summarizes results in prose.
+**Start with a skill, not the MCP** — the skills carry the account-resolution rules, CSV conventions, optimization playbook, and write-preview gate that raw MCP calls bypass. The [`realize-analyst`](agents/realize-analyst.md) agent auto-routes natural-language questions to the right skill, or you can invoke one explicitly (e.g. `/realize-ads-api:optimize-campaign`). The most common miss: treating "performance review" or "insights" as ad-hoc analysis when it belongs in `optimize-campaign`.
 
 ## Natural-language examples
 
