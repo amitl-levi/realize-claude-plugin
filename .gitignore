@@ -1,5 +1,6 @@
-# Per-user plugin state (account defaults, session prefs)
+# Per-user plugin state (account defaults, session prefs, opt-in permissions)
 .claude/*.local.md
+.claude/settings.local.json
 
 # Claude Code tooling caches
 .agent-mail/
@@ -22,3 +23,8 @@ venv/
 .idea/
 .vscode/
 *.swp
+
+# Local PR / review / reply drafts at repo root (not for upstream)
+/pr-description-*.txt
+/pr*-comment-*.txt
+/reply-to-*.txt

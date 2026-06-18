@@ -1,6 +1,6 @@
 ---
 name: discovery
-description: Look up Realize targeting metadata, audiences, publishers, conversion rules, time zones, and CTA types. Use when the user asks "what X is available" or needs an opaque ID before going to the Realize console. Read-only — no campaign or item state is changed.
+description: Look up Realize targeting metadata, audiences, publishers, conversion rules, time zones, and CTA types. Use when the user asks "what X is available" or needs an opaque ID before going to the Realize UI. Read-only — no campaign or item state is changed.
 allowed-tools: ["Read", "Bash", "AskUserQuestion"]
 ---
 
@@ -19,7 +19,7 @@ Trigger on any of:
 - "What conversion rules are configured on account X?"
 - "What time zones does Realize support?"
 - "What CTA button types are available for native items?"
-- Any campaign-console walkthrough where the user needs to paste an opaque ID rather than a display name.
+- Any campaign-creation walkthrough where the user needs to paste an opaque ID rather than a display name.
 
 For pulling **performance numbers**, route to the `reports` skill instead. For campaign/item lookup, route to the `campaigns` skill.
 
@@ -63,7 +63,7 @@ For pulling **performance numbers**, route to the `reports` skill instead. For c
    - `search_geos` with `dimension` in {`regions`, `dma`, `cities`, `postal_codes`} requires `country_code` — ask the user for it before calling, or default to the user's stated geo if obvious.
    - `search_techno` with `dimension=operating_system_versions` requires `os_family` (e.g., `Windows`, `iOS`, `Android`, `macOS`).
 4. **Summarize in prose, not raw JSON.** Pick the 3–5 most relevant rows, surface IDs alongside display names so the user can paste them downstream. If the list is long, offer to filter or paginate.
-5. **Hand off the ID downstream.** When the user is mid-walkthrough in the `create-campaign` skill, return the opaque ID(s) and let the walkthrough continue.
+5. **Hand off the ID downstream.** When the user is mid-flow in the `manage-campaigns` skill (collecting create/update inputs), return the opaque ID(s) verbatim so they can be slotted into the write payload before the preview-and-confirm step.
 
 ## Gotchas
 
@@ -72,4 +72,4 @@ For pulling **performance numbers**, route to the `reports` skill instead. For c
 - **`query="*"` lists all** publishers, but the result is still paginated — don't assume page 1 is the full set.
 - **Audience country filters are passthrough.** `country_codes` and `country_targeting_type` are forwarded to the upstream API; verify the result actually narrowed by checking the row count.
 - **Catalogs change.** Time zones and CTA types are versioned upstream — don't cache them across sessions; re-pull when starting a new campaign-creation flow.
-- **Pass IDs verbatim downstream.** `audience_id`, `segment_id`, `rule_id`, and publisher `id` are opaque values returned by the API. Do not coerce to int, strip, or re-case them.
+- **Pass IDs verbatim downstream — and respect their underlying type.** `account_id`, `campaign_id`, `item_id`, and publisher `id` are **opaque strings** returned by the API; do not coerce to int. `audience_id`, `segment_id`, lookalike `rule_id`, and conversion-rule `id` are **integers** — pass them as numbers, not stringified. In all cases, do not strip or re-case the value returned by the search / list tool.

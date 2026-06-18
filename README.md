@@ -2,12 +2,12 @@
 
 Query Taboola **Realize** campaigns and pull performance reports through natural language, straight from Claude Code. Powered by the [Realize remote MCP](https://github.com/taboola/realize-mcp).
 
-> **Scope today:** account discovery, campaign + item inspection, targeting / audience / publisher / conversion-rule lookup, and performance reports — all read-only. This plugin does not enable write operations; for write-intent requests (creating, editing, pausing, duplicating), the plugin walks you through the Realize console and then verifies the result via MCP.
+> **Scope today:** account discovery, campaign and item inspection, targeting / audience / publisher / conversion-rule lookup, performance reports, and **create + update for campaigns and Native + Display items** — each write gated behind a preview-then-confirm that prominently surfaces the target account. A trimmed UI fallback remains for the few actions still not supported here (delete, duplicate, bulk operations, Custom Rules, conversion-rule creation, CRM uploads).
 
 ## Prerequisites
 
 - [Claude Code](https://claude.ai/claude-code) CLI installed (`claude --version` works)
-- A Taboola Realize account (you'll authenticate via Taboola SSO on first use)
+- A Realize account (you'll authenticate via Taboola SSO on first use)
 - Network access to `https://mcp.realize.com/mcp`
 
 ## Quick Start (Remote — recommended)
@@ -65,10 +65,10 @@ This plugin wraps the remote [realize-mcp](https://github.com/taboola/realize-mc
 | [`campaigns`](skills/campaigns/SKILL.md) | List and inspect campaigns and their creatives |
 | [`discovery`](skills/discovery/SKILL.md) | Look up targeting metadata, audiences, publishers, conversion rules, time zones, and CTA types — resolves opaque IDs before campaign work |
 | [`reports`](skills/reports/SKILL.md) | Pull the four Realize performance reports and interpret the CSV output |
-| [`optimize-campaign`](skills/optimize-campaign/SKILL.md) | Diagnose underperforming campaigns against Taboola's official playbook (500–1000 clicks per item, $50/day minimum, 7–10 day learning phase) and prescribe concrete UI actions |
-| [`create-campaign`](skills/create-campaign/SKILL.md) | Walk through the Realize console setup flow (exact Marketing Objective enum, Bid Strategy × budget minimums, learning-phase defaults) for write-intent actions, plus MCP verification afterward |
+| [`optimize-campaign`](skills/optimize-campaign/SKILL.md) | Diagnose underperforming campaigns against the toolkit's signal-quality thresholds (100+ clicks per item, daily spend ≥ 8× CPA goal, 7–14 day learning phase) and prescribe concrete actions (most now applied via `manage-campaigns`) |
+| [`manage-campaigns`](skills/manage-campaigns/SKILL.md) | Create and update campaigns and Native + Display items. Tiered preview-and-confirm pattern surfaces the target account on every write. Falls back to a UI reference for actions not supported here (delete, duplicate, bulk ops, Custom Rules, conversion-rule creation, CRM uploads) |
 
-The plugin also ships one agent, [`realize-analyst`](agents/realize-analyst.md), which routes natural-language questions to the right skill/tool and summarizes results in prose.
+**Start with a skill, not the MCP** — the skills carry the account-resolution rules, CSV conventions, optimization playbook, and write-preview gate that raw MCP calls bypass. The [`realize-analyst`](agents/realize-analyst.md) agent auto-routes natural-language questions to the right skill, or you can invoke one explicitly (e.g. `/realize-ads-api:optimize-campaign`). The most common miss: treating "performance review" or "insights" as ad-hoc analysis when it belongs in `optimize-campaign`.
 
 ## Natural-language examples
 
@@ -93,9 +93,11 @@ The plugin also ships one agent, [`realize-analyst`](agents/realize-analyst.md),
 "What time zones does Realize support?"
 "What CTA button types exist for native items?"
 
-# setup (UI walkthrough)
+# setup (preview-then-confirm before any write)
 "Create a new Online Purchases campaign with a $25 CPA target."
-"Walk me through launching a Leads campaign in the UK."
+"Bump the daily budget on campaign 12345 to $500."
+"Also target Canada on campaign 12345."
+"Pause item 887003."
 ```
 
 ## Configuration Reference
@@ -130,7 +132,10 @@ The query window genuinely had no data, or you queried a campaign that didn't ru
 All three are **opaque identifiers** returned by the API. `account_id` is a string (e.g., `advertiser_12345_prod`) returned exclusively by `search_accounts`. `campaign_id` and `item_id` come from campaign/item tools. Pass them to follow-up calls exactly as received — don't reformat or coerce to numbers.
 
 **The plugin tried to create a campaign and failed.**
-Claude should route write-intent requests to the `create-campaign` skill (UI walkthrough) whenever no MCP tool exists for the requested action. If Claude attempted a tool call that doesn't exist or isn't documented, that's a bug — please [file an issue](https://github.com/taboola/realize-claude-plugin/issues) with the transcript.
+Claude routes write-intent requests to the `manage-campaigns` skill, which previews the resolved payload (and the target account) and asks for confirmation before submitting. Delete, duplicate, and bulk operations aren't supported here yet — those fall back to the Realize UI. If Claude attempted something unexpected, please [file an issue](https://github.com/taboola/realize-claude-plugin/issues) with the transcript.
+
+**A write went to the wrong account.**
+Every write preview must lead with `▶ WRITE TARGET: <account name> (<account id>)`. If you saw the wrong account in that header before approving, the issue is at the account-resolution step — re-run the `accounts` skill to confirm the right account is selected before retrying. If the header was missing entirely, that's a bug; please file an issue with the transcript.
 
 **CSV output was truncated.**
 Very large result sets are auto-truncated server-side. Narrow the query (shorter date range, specific `campaign_id`, higher sort discrimination) and retry.

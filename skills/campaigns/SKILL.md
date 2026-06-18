@@ -12,6 +12,10 @@ Inspection of campaigns and their items (creatives) for a given account using th
 
 - `account_id` resolved via the `accounts` skill. If missing, hand off there first.
 
+## Related skills
+
+- For **writes** — create or update a campaign or native item — hand off to the [`manage-campaigns`](../manage-campaigns/SKILL.md) skill. This skill stays read-only.
+
 ## Tools this skill wraps
 
 | Tool | Required params | Paginated? |

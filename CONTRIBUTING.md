@@ -7,7 +7,7 @@ Thanks for your interest in improving the Realize Claude Plugin. Contributions o
 - Be respectful and follow our [Code of Conduct](CODE_OF_CONDUCT.md).
 - This plugin wraps the [Realize remote MCP](https://github.com/taboola/realize-mcp). If your change needs a new MCP tool or a behavioral change on the server side, open an issue on the MCP repo first.
 - Do not add direct API calls to Realize from this plugin (no `curl`, no `httpx`). All data access flows through MCP tools — see [CLAUDE.md](CLAUDE.md) for the reasoning.
-- Do not add code paths that call MCP tools that don't exist in the current upstream release. User-facing requests for actions not yet exposed as MCP tools are handled by the `create-campaign` skill, which walks users through the Realize UI. When upstream adds new write tools, wire them through with an explicit PR and update the `create-campaign` skill rather than silently adding a write path.
+- Do not add code paths that call MCP tools that don't exist in the current upstream release. User-facing requests for actions not yet exposed as MCP tools (today: delete, duplicate, bulk operations) are handled by the `manage-campaigns` skill's UI fallback section. When upstream adds new write tools, wire them through `manage-campaigns` with an explicit PR — never route writes directly through the agent. New writes must inherit the tiered preview-then-confirm gate and the mandatory `▶ WRITE TARGET` account header.
 
 ## Before you start
 
@@ -19,7 +19,7 @@ Thanks for your interest in improving the Realize Claude Plugin. Contributions o
 1. Fork and branch from `main`.
 2. Make your change. Keep PRs focused — one change per PR.
 3. Update documentation:
-   - New skill? Add a row to the README's "Available Skills" table and at least one test scenario in `tests/test-scenarios.md`.
+   - New skill? Add a row to the README's "Available Skills" table and at least one test scenario in `tests/test-scenarios-read.md` (read-only paths) or `tests/test-scenarios-write.md` (destructive paths — include side effects + cleanup).
    - Changed behavior? Note it in `CHANGELOG.md` under the next unreleased version.
 4. Verify locally:
    - `python -m json.tool < .claude-plugin/plugin.json` (valid JSON)
@@ -34,9 +34,11 @@ Thanks for your interest in improving the Realize Claude Plugin. Contributions o
 - [ ] CHANGELOG entry added
 - [ ] Frontmatter + JSON validates
 - [ ] At least one test scenario touches the new behavior
-- [ ] No write paths added to MCP tools
+- [ ] Any new MCP write tool routes through the `manage-campaigns` skill on Claude Code, and the preview-then-confirm gate in `os/guardrails.md` covers it for every runtime (Codex included)
+- [ ] New write paths have a scenario in `tests/test-scenarios-write.md` with explicit side-effects + cleanup
+- [ ] Pre-approval of new write tools stays out of the committed `.claude/settings.json` — per-user opt-in goes through the gitignored `.claude/settings.local.json` template instead
 - [ ] No secrets, tokens, or account-specific data in committed files
 
 ## Contact
 
-For questions that don't belong in an issue, email the Taboola Realize team (TODO: add team alias before the first public release).
+For questions that don't belong in an issue, email the Realize team at Taboola (TODO: add team alias before the first public release).
