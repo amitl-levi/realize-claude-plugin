@@ -2,9 +2,9 @@
 
 ## Overview
 
-Bidding strategy determines how the Realize algorithm spends the advertiser's budget to achieve conversions. The right strategy depends on campaign maturity, data volume, and optimisation goals. This file covers strategy selection, the bid-levers matrix, learning-phase behaviour with the Learning-Period guard, CPA troubleshooting, and scaling.
+Bidding strategy determines how the Realize algorithm spends your budget to achieve conversions. The right strategy depends on campaign maturity, data volume, and optimisation goals. This file covers strategy selection, the bid-levers matrix, learning-phase behaviour with the Learning-Period guard, CPA troubleshooting, and scaling.
 
-> **Attribution note:** CPA, CVR, and conversion metrics in this file refer to the advertiser's selected attribution model in Realize. When reporting these metrics in analysis, always specify the model — `CPA (CT only)`, `CPA (Total CT+VT)`, or equivalent.
+> **Attribution note:** CPA, CVR, and conversion metrics in this file refer to your selected attribution model in Realize. When reporting these metrics in analysis, always specify the model — `CPA (CT only)`, `CPA (Total CT+VT)`, or equivalent.
 
 ---
 
@@ -28,7 +28,7 @@ The campaign's primary KPI drives BOTH the `marketing_objective` AND the `bid_st
 **FIXED CPC is never the default.** Even when a pixel + conversion rule are not yet in place, FIXED is not the fallback. The default bid strategy for any conversion-leaning campaign is `MAX_CONVERSIONS` (paired with `marketing_objective=ONLINE_PURCHASES` for ROAS / sales, or `LEADS_GENERATION` for lead generation).
 
 **Only use FIXED when:**
-- The advertiser explicitly asks for a fixed-CPC buy
+- A fixed-CPC buy is the explicit requirement
 - The campaign needs to honour a fixed CPM or CPC rate card exactly
 - A regulated category requires manual bid control
 
@@ -52,7 +52,7 @@ NEVER ship a campaign as BRAND_AWARENESS + FIXED CPC just because the pixel is m
 - **FIXED CPC**: advertiser sets the bid. Algorithm can't dynamically up-bid for high-value users. Suitable when the goal is pure reach at a known unit cost.
 - **MAX_CONVERSIONS**: algorithm bids dynamically per impression to maximise conversion count under the daily budget. Outperforms FIXED for any conversion-driven goal.
 - **MAX_VALUE**: same as MAX_CONVERSIONS but the algo weights toward conversions with HIGHER recorded value (when the pixel reports purchase amounts). The right call for ROAS-driven campaigns.
-- **TARGET_CPA**: algorithm bids to hit a specified CPA. Use when the advertiser has a hard CPA ceiling.
+- **TARGET_CPA**: algorithm bids to hit a specified CPA. Use when there's a hard CPA ceiling.
 - **SMART** (default for BRAND_AWARENESS / DRIVE_WEBSITE_TRAFFIC): modern automated bidding for non-conversion objectives.
 
 ---
@@ -133,7 +133,7 @@ The primary recommendation is **Maximize Conversions** for best performance. Oth
 
 1. **Default: Maximize Conversions** — the right choice for fully automated bidding.
 2. **Add Target CPA only** if CPA cost control is more important than conversion volume. Target CPA is by design more conservative and prioritises cost over scale.
-3. **Use Enhanced CPC** when the advertiser wants more control over CPC. Enhanced CPC uses the advertiser's base CPC as the bidding benchmark.
+3. **Use Enhanced CPC** when you want more control over CPC. Enhanced CPC uses your base CPC as the bidding benchmark.
 4. **Use Fixed Bid** only when complete bid control is required — focusing on impressions, bidding on vCPM / CPM, or when not tracking conversions.
 
 ### Critical Target CPA Rules
@@ -214,7 +214,7 @@ If the campaign is pacing ahead of expectation:
 1. Allow the campaign **2-3 days to stabilise**.
 2. During learning, the algorithm is trying to optimise for the selected conversion event and get enough data to finish learning faster.
 3. **Reducing budget too early can reset the learning phase, slow optimisation, and negatively affect CPA and CPC.**
-4. Only intervene if the advertiser has strict budget restrictions — and even then, prefer a moderate adjustment over a significant reduction.
+4. Only intervene if there are strict budget restrictions — and even then, prefer a moderate adjustment over a significant reduction.
 
 ### Underspending During Learning
 
@@ -257,12 +257,12 @@ CPA volatility immediately after launch is common — the algorithm is learning 
 | Step | Action |
 |---|---|
 | 1 | **Review spend vs. CPA alignment.** Check whether daily spend is sufficient and the CPA goal is realistic. |
-| 2 | **Consider adding Target CPA.** On Maximize Conversions, adding Target CPA controls cost. Be mindful this can reduce daily spend — set advertiser expectations. |
-| 3 | *(Optional)* **Bid ceiling.** For advertisers with strict CPC goals, consider a bid ceiling to cap CPC. |
+| 2 | **Consider adding Target CPA.** On Maximize Conversions, adding Target CPA controls cost. Be mindful this can reduce daily spend — plan for the reduction. |
+| 3 | *(Optional)* **Bid ceiling.** If your CPC goal is strict, consider a bid ceiling to cap CPC. |
 
 ### CPA Spike Signal Table
 
-> All CPA / CVR numbers below assume the advertiser's selected attribution model — state it explicitly in any answer that uses these patterns.
+> All CPA / CVR numbers below assume your selected attribution model — state it explicitly in any answer that uses these patterns.
 
 | Signal | Suggested Actions |
 |---|---|
@@ -304,7 +304,7 @@ High CPA indicates inefficiency. Check in this order.
 
 | # | Check | Action |
 |---|---|---|
-| 1 | **Conversion event** | Ensure the event has enough data or the campaign is able to finish learning and gather enough conversion data. If the conversion event is extremely rare, higher CPA is expected — adjust advertiser expectations and start with a larger budget, or add earlier-funnel conversion events. |
+| 1 | **Conversion event** | Ensure the event has enough data or the campaign is able to finish learning and gather enough conversion data. If the conversion event is extremely rare, higher CPA is expected — plan accordingly and start with a larger budget, or add earlier-funnel conversion events. |
 | 2 | **Budget** | Restrictive budget limits the algorithm's ability to spend and leads to higher CPA. Consider increasing the budget to stay competitive. |
 | 3 | **Audience focus** | Going too broad can result in wasted spend and higher CPAs. Focus on high-intent audiences using mail and search signals, or narrow to top-performing demographic segments. (Too narrow can also impact scale.) |
 | 4 | **Creative and landing-page alignment** | A mismatch between creative messaging and landing page leads to higher CPAs. Ensure landing-page messaging aligns with creative messaging. Ensure the ad is not over-promising or misleading. |

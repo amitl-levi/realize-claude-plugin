@@ -103,7 +103,7 @@ Consider using the **Performance Simulator** (if eligible) to identify potential
 
 ### Definition
 
-Short-burst campaigns typically run **2-10 days** for promotions, launches, or time-bound offers where the advertiser needs to ensure full budget depletion. Within that range, the **bid strategy splits at 7 days** — see the decision table below.
+Short-burst campaigns typically run **2-10 days** for promotions, launches, or time-bound offers where full budget depletion within the window is the goal. Within that range, the **bid strategy splits at 7 days** — see the decision table below.
 
 ### Best Practices for Maximum Delivery
 

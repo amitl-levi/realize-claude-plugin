@@ -4,7 +4,7 @@
 
 Setting up tracking properly is the **highest priority** during account creation. Accounts that follow tracking best practices are significantly more likely to see value and keep spending on Realize. This file covers tracking methods, conversion events, ROAS tracking, parameters, and debugging.
 
-> **Attribution note:** Tracking setup directly determines which attribution model the advertiser sees — Click-Through (CT), View-Through (VT), or Total (CT+VT). Always name the model explicitly when reporting conversion metrics: `CPA (CT only)`, `CVR (Click-Through)`, `Leads (Total CT+VT)`.
+> **Attribution note:** Tracking setup directly determines which attribution model you see — Click-Through (CT), View-Through (VT), or Total (CT+VT). Always name the model explicitly when reporting conversion metrics: `CPA (CT only)`, `CVR (Click-Through)`, `Leads (Total CT+VT)`.
 
 ---
 
@@ -12,21 +12,21 @@ Setting up tracking properly is the **highest priority** during account creation
 
 ### Tracking Method Decision
 
-For optimal performance, implement the **Taboola Pixel** to map the advertiser's conversion funnel. Where needed, combine with **Server-to-Server (S2S)** for end-to-end funnel coverage (e.g., when the conversion funnel includes offline conversions).
+For optimal performance, implement the **Taboola Pixel** to map your conversion funnel. Where needed, combine with **Server-to-Server (S2S)** for end-to-end funnel coverage (e.g., when the conversion funnel includes offline conversions).
 
 | Tracking Method | Role | When to Use | Value | Limitations |
 |---|---|---|---|---|
-| **Taboola Pixel** | Primary | Advertiser can implement JavaScript on-site and map key funnel steps | Rich behavioural data, strongest optimisation signals, accurate attribution | Dependent on dev resources; implementation may take longer |
+| **Taboola Pixel** | Primary | You can implement JavaScript on-site and map key funnel steps | Rich behavioural data, strongest optimisation signals, accurate attribution | Dependent on dev resources; implementation may take longer |
 | **S2S** | Secondary / Complementary | Offline, in-app, CRM-driven, or system-based conversions | Precise event control, enables offline and complex funnels | Fewer behavioural signals if used alone |
-| **Others** (Image Pixel, 3rd-Party Tags, UTMs, Floodlight) | Fallback | Pixel or S2S not possible, or advertiser-mandated measurement | Enables tracking in privacy-restricted or ecosystem-locked setups | Limited optimisation, weaker attribution, data gaps |
+| **Others** (Image Pixel, 3rd-Party Tags, UTMs, Floodlight) | Fallback | Pixel or S2S not possible, or measurement is mandated externally | Enables tracking in privacy-restricted or ecosystem-locked setups | Limited optimisation, weaker attribution, data gaps |
 
 ### Decision Rule
 
-- If the advertiser can implement JavaScript → Taboola Pixel first.
+- If JavaScript can be implemented on-site → Taboola Pixel first.
 - If conversions happen offline or in-app → add S2S.
 - If privacy or technical constraints block both → other tracking methods.
 
-### When the Advertiser Refuses Pixel or S2S
+### When Pixel or S2S Isn't an Option
 
 Alternative methods — sub-optimal for algorithm performance but offer highest privacy.
 
@@ -53,7 +53,7 @@ Alternative methods — sub-optimal for algorithm performance but offer highest 
 
 ### When to Use Network-Level Tracking
 
-- **Unified conversion goal:** client uses the same domain and has a single identical conversion goal across multiple accounts.
+- **Unified conversion goal:** the accounts share a domain and a single identical conversion goal.
 - **Cross-account funnels:** need to attribute a conversion to the specific campaign that provided the last interaction, even if in a different account within the same network.
 - **Simplified management:** prefer managing a single set of conversion rules across the network.
 
@@ -66,8 +66,8 @@ Network and Account Pixels together create synergy. The Network Pixel provides l
 Test tracking:
 
 1. Right after finishing tracking setup.
-2. Every time the advertiser has concerns about tracking on Realize.
-3. Whenever investigating a discrepancy rate over 20% with the advertiser's source of truth, or any performance issue.
+2. Every time there's a concern about tracking on Realize.
+3. Whenever investigating a discrepancy rate over 20% against your source of truth, or any performance issue.
 
 **Tools:**
 
@@ -115,7 +115,7 @@ For new campaigns, consider including both Primary and Secondary conversions in 
 
 Think of it as levels:
 
-- **Level 1:** achieve 50+ conversions (soft and primary combined) per week for optimal Maximize Conversions performance — may be sub-optimal by the advertiser's definition.
+- **Level 1:** achieve 50+ conversions (soft and primary combined) per week for optimal Maximize Conversions performance — may be sub-optimal by your definition.
 - **Level 2:** achieve 50+ conversions (primary only) per week for optimal Maximize Conversions **and** optimal advertiser performance.
 
 **Important nuance:** 50 conversions per week is a best practice, not a hard limitation. The algorithm can work with fewer conversions. The threshold was established empirically.
@@ -165,13 +165,13 @@ If not all conversions are equal in value (e.g., Purchase where value = item cos
 
 **Core issue:** When a user clicks an ad in Apple News, they are in a restricted web view. If they leave and return via Safari to finish their purchase, the tracking ID is stripped. The dashboard only sees about **40% of actual conversions** (those that happen immediately). The remaining 60% are invisible.
 
-**How to communicate this to clients:**
+**What to plan for:**
 
 - Apple News traffic is significantly under-reported.
 - Should not be judged on a last-click basis alone.
 - Recommend looking at blended ROAS or internal analytics to see full impact.
 - An "expensive" CPA on paper is often highly profitable once you account for the 60% of missing post-click data.
-- **Set expectations early.**
+- **Plan for this gap up front when forecasting CPA.**
 
 ### Funnelish Tracking
 
@@ -202,7 +202,7 @@ If using Funnelish to bypass standard Shopify checkout, the Shopify app **will n
 - Never include conversions far apart in the funnel in the same Total Conversions set.
 - Never remove the secondary (soft) conversion too early — wait until high conversion volume is achieved.
 - Never judge Apple News CPA on a last-click basis — 60% of conversions are invisible due to the tracking gap.
-- Always verify tracking after setup, after advertiser concerns, and when discrepancy exceeds 20%.
+- Always verify tracking after setup, when a tracking concern surfaces, and when discrepancy exceeds 20%.
 - Always check both network-level and account-level pixel configuration.
 - Always filter out archived and disabled conversion events in analysis.
 
@@ -219,5 +219,5 @@ If using Funnelish to bypass standard Shopify checkout, the Shopify app **will n
 
 - Optimise toward a specific product or funnel per account. Do not mix different products and completely different funnels on the same account — each product has different relevant audiences, and mixing confuses the algorithm.
 - Using **Gen AI AdMaker** significantly improves creative approval rate by approximately 50%. The model has built-in policies that reduce time to launch.
-- The algorithm looks for the easiest conversion. When optimising toward Add-to-Cart + Purchase, it prioritises Add-to-Carts. For some advertisers, optimising toward Purchases directly is more beneficial — discuss with the client.
+- The algorithm looks for the easiest conversion. When optimising toward Add-to-Cart + Purchase, it prioritises Add-to-Carts. For some advertisers, optimising toward Purchases directly is more beneficial — worth evaluating against your funnel.
 - 50 conversions per week is a best-practice threshold, not a hard limitation. The algorithm can work with fewer conversions.

@@ -39,9 +39,9 @@ Gender-specific exact age ranges (e.g., F35-64) may need to be composed from bro
 
 ### ⚠ Market-tier check — read this BEFORE the strategy table
 
-**If the campaign's market is NOT in the Tier 1 list below, do not apply the objective-based strategy table.** Start with broad targeting (run-of-network + premium publishers + contextual layer if needed). Surface this to the user prominently — most self-serve advertisers in non-Tier-1 markets unknowingly build narrow plans and then can't figure out why delivery stalls.
+**If the campaign's market is NOT in the Tier 1 list below, do not apply the objective-based strategy table.** Start with broad targeting (run-of-network + premium publishers + contextual layer if needed). Flag this prominently — narrow plans in non-Tier-1 markets are a common cause of stalled delivery that's hard to diagnose after the fact.
 
-Plain-language framing to use with the user:
+Plain-language framing:
 > "Your market has more limited audience data than the Tier 1 markets (US, UK, AU, etc.). The recommended starting approach is **broad targeting** — narrow segments may not have enough audience pool to deliver, and restrictive targeting upfront depletes the pool faster than the algorithm can learn. We can refine after the campaign has data."
 
 ### Tier 1 regions — where the objective-based strategy below applies
@@ -62,7 +62,7 @@ The strategy table below assumes sufficient 1st-party data volume to scale withi
 |---|---|---|
 | **Upper-Mid Funnel (Engagement / Brand Awareness)** | Start broad → narrow after identifying best audiences | Recommended: contextual / interest targeting. |
 | **Maximising Efficiency (Low CPA / ROAS)** | Start with high-intent audiences | Start with Search Keyword Retargeting (SRT — active intent) and Mail Domain Retargeting (MRT — transaction signals, competitor conquesting). Add Pixel or CRM Retargeting after a few days to optimise on first-party data. |
-| **Scale with Performance** | Start with MRT bundles or Contextual | MRT bundles (categories fitting the advertiser's vertical) or Contextual Targeting (Interests) to fuel the algorithm. Add Predictive Audiences when using a pixel seed. US accounts can also use CRM Lookalike. |
+| **Scale with Performance** | Start with MRT bundles or Contextual | MRT bundles (categories fitting your vertical) or Contextual Targeting (Interests) to fuel the algorithm. Add Predictive Audiences when using a pixel seed. US accounts can also use CRM Lookalike. |
 | **Niche / Persona Accuracy** | Prioritise declared first-party demographics | Use declared over inferred data for zero wastage. Avoid relying solely on third-party segments unless first-party scale is insufficient. |
 
 ### All Available Targeting Solutions
@@ -76,7 +76,7 @@ The strategy table below assumes sufficient 1st-party data volume to scale withi
 | **Optimise for Engagement** | Use engagement conversions (time on site, session depth) to target high-intent audiences. Relevant for mid-to-lower funnel goals. Use as part of retargeting strategy or alongside additional segments to lead users through the funnel. |
 | **Third-Party Marketplace Segments** | Select from 20+ third-party data providers including Audience One, Bombora, Connexity, Eyeota. Additionally layer with Taboola First Party Audiences (demographic or interest-based). |
 | **Advertiser Pixel Audiences (first-party)** | Use the pixel for retargeting (users who clicked on ads or visited the website). Use as part of inclusion / exclusion strategy — e.g., excluding users who already completed a conversion event. |
-| **Predictive Audiences** | Use alongside always-on or broad-targeted campaigns as complementary targeting. **Always create a new campaign** for a predictive audience. Can be built from pixel or S2S event. **Mandatory: 100 conversions** needed to create a segment. Build the segment and allow up to 48 hours to activate before discussing upsell with the advertiser. |
+| **Predictive Audiences** | Use alongside always-on or broad-targeted campaigns as complementary targeting. **Always create a new campaign** for a predictive audience. Can be built from pixel or S2S event. **Mandatory: 100 conversions** needed to create a segment. Build the segment and allow up to 48 hours to activate before evaluating whether to expand. |
 | **CRM Segments** | Upload CRM list to retarget. Minimum **1,000 user records** recommended. Watch the Reach Estimator — low volume leads to low spend and performance. **Available in select markets only.** |
 | **CRM Lookalike** | **US-based accounts only.** Set the lookback window long enough to capture the entire consideration phase (max 180 days). Regularly update source data for maximum reach. |
 
@@ -165,7 +165,7 @@ The recommended starting point for most advertisers is **premium editorial suppl
 |---|---|
 | **Audience Exploration Tab** | For Run-of-Network campaigns, use the audience-exploration tab to get insights into segments you're not currently targeting. |
 | **Add similar segments** | For campaigns targeting specific audiences, add similar audience segments or use combined audiences (interest + intent + demographic). |
-| **Marketplace / Taboola First Party Audiences** | Narrow down on specific audiences based on the advertiser's product / service. |
+| **Marketplace / Taboola First Party Audiences** | Narrow down on specific audiences based on your product / service. |
 | **Predictive Audiences** | Reach high-intent audiences based on pixel / S2S events. Ensure the conversion event has sufficient data (up to 100 conversions). Advertisers optimising toward page views or similar upper-funnel events are not eligible. |
 
 **Why this works:** Broadening the audience base using data-backed insights allows the algorithm to find new conversion opportunities while maintaining efficiency through predictive and contextual alignment.
@@ -221,12 +221,12 @@ Both unlock first-party signal but they pull different audience populations.
 **Pixel retargeting (pixel audiences):**
 - **What it captures:** anonymous prospects + "window shoppers" based on website behaviour (page visits, time on site, scroll, event interactions).
 - **Value:** identifies highly engaged users who have already touched the site — the algorithm reaches a known-warm pool.
-- **Use case:** recommended when the advertiser has **high website traffic but low conversion rates** — the audience is engaged enough to retarget, and the pixel captures intent the CRM list doesn't.
+- **Use case:** recommended when there's **high website traffic but low conversion rates** — the audience is engaged enough to retarget, and the pixel captures intent the CRM list doesn't.
 
 **CRM retargeting (CRM audiences):**
-- **What it captures:** known leads, past buyers, and churned users — first-party records the advertiser owns.
+- **What it captures:** known leads, past buyers, and churned users — first-party records you own.
 - **Value:** connects data to action at scale; future-proofed first-party data that survives third-party cookie loss.
-- **Use case:** recommended when the advertiser has **a large email list that's not being reached** by other channels, and when **re-engaging lapsed customers** is the objective.
+- **Use case:** recommended when there's **a large email list that's not being reached** by other channels, and when **re-engaging lapsed customers** is the objective.
 
 In practice, both can be layered: pixel for engagement-driven prospecting, CRM for owned-audience re-engagement. Build both seeds in parallel where the volume thresholds support it.
 

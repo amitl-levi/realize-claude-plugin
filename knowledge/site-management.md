@@ -2,7 +2,7 @@
 
 ## Overview
 
-Site management controls which publisher sites receive campaign spend. Effective management balances performance optimisation (blocking bad sites) against reach (maintaining enough inventory). This file covers site targeting, performance monitoring, blocking decisions, approved lists, the historical-publisher block guard, and cross-cutting CPA / CVR issues.
+Site management controls which publisher sites receive campaign spend. Effective management balances performance optimisation (excluding sites that underperform on the campaign's KPI) against reach (maintaining enough inventory). This file covers site targeting, performance monitoring, blocking decisions, approved lists, the historical-publisher block guard, and cross-cutting CPA / CVR issues.
 
 ---
 
@@ -81,9 +81,9 @@ When a campaign uses approved-list mode, only the publishers on the list are eli
 
 ### When to recommend approved-list mode
 
-- Advertiser has **significant learnings** from past or always-on campaigns and a confident list of top performers.
+- You have **significant learnings** from past or always-on campaigns and a confident list of top performers.
 - **Short-burst / seasonal campaigns** where running on known winners maximises impact in the available time.
-- **Curated premium publishers** the advertiser wants to associate with (e.g., Yahoo placements only).
+- **Curated premium publishers** you want to associate with (e.g., Yahoo placements only).
 
 ### Phrasing in answers
 

@@ -122,6 +122,22 @@ scan_fail "Banned positioning"              '\b(brand\s+sentiment|cookie\s+depre
 # 6. Legacy perceptions (the fear list)
 scan_fail "Legacy perceptions"              '\b(chumbox|clickbait|scam\s+ads?|spam\s+ads?|low[- ]quality\s+(traffic|ads?)|low\s+visibility\s+ads?|questionable\s+ad\s+quality|old[- ]school\s+content)\b' "${PUBLIC[@]}"
 
+# 6b. Publisher-character framing (see os/guardrails.md → Publisher and site framing).
+# Catches qualitative judgments applied to publisher inventory in static content.
+# Runtime is governed by the guardrail; this is build-time defense-in-depth.
+scan_fail "Publisher-character framing"     '\b(junk|garbage|trash|crap|sketchy|shady|spammy|dodgy|dirty|rotten)\s+(site|sites|publisher|publishers|inventory|supply|placement|placements|traffic)\b' "${PUBLIC[@]}"
+scan_fail "Publisher-character framing"     '\b(bad|poor|low[- ]quality|low[- ]grade|cheap|junky|garbage|trash(y)?)\s+(site|sites|publisher|publishers|inventory|supply)\b' "${PUBLIC[@]}"
+scan_fail "Rescue / salvage framing"        '\b(rescue|salvage|write[- ]off|write[- ]offs?)\s+(this|the|some|those)?\s*(site|sites|publisher|publishers|inventory|supply|campaign|campaigns)\b' "${PUBLIC[@]}"
+
+# 6c. Reader framing (see os/guardrails.md → Reader framing — the operator, not a relay through them).
+# Catches AM-relay posture in static content. Runtime is governed by the guardrail;
+# this is the build-time net. Possessive "your client" stays valid for agency context.
+scan_fail "AM-relay framing — verbs at the advertiser"   '\b(ask|tell|warn|remind|advise|inform|push|instruct|encourage)\s+(the\s+)?(advertiser|client)\b' "${PUBLIC[@]}"
+scan_fail "AM-relay framing — modal at the advertiser"   '\bthe\s+(advertiser|client)\s+(should|must|needs\s+to|has\s+to|will\s+need\s+to)\b' "${PUBLIC[@]}"
+scan_fail "AM-relay framing — set expectations"          '\bset\s+(the\s+)?(advertiser|client)\s+expectations?\b' "${PUBLIC[@]}"
+scan_fail "AM-relay framing — discuss with"              '\bdiscuss\s+(this\s+)?with\s+the\s+(advertiser|client)\b' "${PUBLIC[@]}"
+scan_fail "AM-relay framing — communicate to clients"    '\b(how\s+to\s+)?communicate\s+this\s+to\s+(clients?|the\s+(advertiser|client))\b' "${PUBLIC[@]}"
+
 # 7. Generic ad-tech flattening
 scan_fail "Generic ad-tech framing"         '\b(adtech|martech|marketing\s+technology|omnichannel\s+platform|media\s+buying\s+software|marketing\s+solution|digital\s+advertising\s+tool|campaign\s+management\s+solution)\b' "${PUBLIC[@]}"
 

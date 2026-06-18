@@ -155,8 +155,8 @@ Use `AskUserQuestion` for any required field the user did not supply. Validate a
 | `MAX_CONVERSIONS` | **10× the CPA goal** per day (learning-phase stability with conversion optimization). |
 | `TARGET_CPA` | **10× the CPA goal** per day ($50/day minimum if CPA < $5). Same floor as `MAX_CONVERSIONS` — see `knowledge/bidding.md`. |
 | `SMART` (Enhanced CPC) | **5× the CPA goal** per day, with a **150× CPA monthly** minimum. |
-| `FIXED` | Per client requirements; no published Taboola minimum. |
-| `MAX_VALUE` | Per client requirements; surface the formula but don't block on a hard minimum unless the user supplies a CPA goal. |
+| `FIXED` | Set per your campaign requirements; no published Taboola minimum. |
+| `MAX_VALUE` | Set per your campaign requirements; surface the formula but don't block on a hard minimum unless a CPA goal is supplied. |
 
 For non-conversion campaigns (objective = `BRAND_AWARENESS` / `DRIVE_WEBSITE_TRAFFIC`): target **100–200 clicks per day** as the minimum data volume. Budget = `cpc × desired_clicks_per_day`. Example: $0.50 CPC × 100–200 clicks/day → $50–$100/day.
 
@@ -332,7 +332,7 @@ Display items attach to a Display campaign (or to a `pricing_model=CPC` campaign
 1. Resolve `account_id`, `campaign_id`. Confirm with `get_campaign` that the campaign is Display (or undetermined under `pricing_model=CPC`). If it's already locked as Native, refuse: *"This campaign is locked as Native — Display items can't be added. Want me to create a new Display campaign instead?"*
 2. Collect required fields via `AskUserQuestion`. Two recipes:
    - **3P JS tag (programmatic / verification-tagged):** `ad_tag` (must start at character 0 — no `<!DOCTYPE>`, no `<html>` / `<body>` / `<div>` wrapper, no leading whitespace; tag must pass the per-vendor validator server-side), `dimensions` (single-entry array, e.g., `[{"width": 300, "height": 250}]`), `creative_name`, `url` (landing page).
-   - **1P-hosted display:** `asset_url` (image / animated asset hosted by the advertiser or uploaded to Realize), `dimensions`, `creative_name`, `url`.
+   - **1P-hosted display:** `asset_url` (image / animated asset hosted on your CDN or uploaded to Realize), `dimensions`, `creative_name`, `url`.
 3. Optional: `branding_text` (inherits from campaign if omitted), `verification_pixel` (DV / IAS impression pixel), `viewability_tag` (DV / IAS viewability tag).
 4. Render the preview:
    ```

@@ -2,7 +2,7 @@
 
 ## Overview
 
-Realize campaigns can run across multiple environments beyond standard web. Each environment has different user behaviour, ad format requirements, and performance characteristics. This file covers environment options, expansion strategy, and the Sponsored Content ↔ Display upsell path.
+Realize campaigns can run across multiple environments beyond standard web. Each environment has different user behaviour, ad format requirements, and performance characteristics. This file covers environment options, expansion strategy, and the Sponsored Content ↔ Display expansion path.
 
 ---
 
@@ -42,13 +42,13 @@ Once performance stabilises, expand into additional environments for incremental
 
 When a user clicks an ad in Apple News, they are in a restricted web view. If they leave and return via Safari, the tracking ID is stripped. The dashboard only sees about **40% of actual conversions**. The remaining 60% are invisible.
 
-**How to communicate:**
+**What to plan for:**
 
 - Apple News traffic is significantly under-reported.
 - Should not be judged on a last-click basis alone.
 - Recommend blended ROAS or internal analytics for full impact view.
 - An "expensive" CPA on paper is often highly profitable once you account for the 60% missing data.
-- Set expectations early.
+- Plan for this gap up front when forecasting CPA.
 
 ---
 
@@ -73,16 +73,16 @@ When a user clicks an ad in Apple News, they are in a restricted web view. If th
 
 ---
 
-## Sponsored Content ↔ Display Upsell
+## Sponsored Content ↔ Display Expansion
 
-### Upsell Decision Table
+### Expansion Decision Table
 
-| Advertiser Type | Current Setup | Marketing Objective | Recommended Action | Checklist |
+| Campaign Stage | Current Setup | Marketing Objective | Recommended Action | Checklist |
 |---|---|---|---|---|
-| Existing advertiser | Running only Sponsored Content | Mid-funnel KPIs (even if not currently targeting for Sponsored Content) | **Upsell Display** | 1. Confirm incremental test budget. 2. Display-ready creative available, or use the Social Importer. |
-| New advertiser | Running Sponsored Content | Mid-to-low funnel KPIs | **Upsell performance mix** (Sponsored Content + Display) | 1. Check Sponsored Content performance, allow to stabilise. 2. Confirm creative availability. 3. Initiate Display campaign. |
-| New advertiser | Running only Display | Lower-funnel KPIs (even if not currently targeting for Display) | **Upsell Sponsored Content** | 1. Advertiser has lower-funnel KPIs (lead gen, purchase). 2. Ensure correct tracking. 3. Start Sponsored Content with broad targeting. |
-| New advertiser | Running Display, has quality concerns on Sponsored Content | Mid-to-lower funnel goals | **Upsell additional environments** (Apple News, Mail, App) | See environment-specific guidance above. |
+| Established account | Running only Sponsored Content | Mid-funnel KPIs (even if not currently targeting for Sponsored Content) | **Add Display** | 1. Confirm incremental test budget. 2. Display-ready creative available, or use the Social Importer. |
+| New account | Running Sponsored Content | Mid-to-low funnel KPIs | **Run a performance mix** (Sponsored Content + Display) | 1. Check Sponsored Content performance, allow to stabilise. 2. Confirm creative availability. 3. Initiate Display campaign. |
+| New account | Running only Display | Lower-funnel KPIs (even if not currently targeting for Display) | **Add Sponsored Content** | 1. Confirm lower-funnel KPIs (lead gen, purchase) are in scope. 2. Ensure correct tracking. 3. Start Sponsored Content with broad targeting. |
+| New account | Running Display, has quality concerns on Sponsored Content | Mid-to-lower funnel goals | **Expand into additional environments** (Apple News, Mail, App) | See environment-specific guidance above. |
 
 ### Why Display → Sponsored Content Works
 
@@ -100,7 +100,7 @@ When a user clicks an ad in Apple News, they are in a restricted web view. If th
 
 ### Pro Tip
 
-If the advertiser opts for Display to run **short-burst campaigns**, keep an always-on campaign and use the ad scheduler to run additional short-burst campaigns.
+If Display is the format for **short-burst campaigns**, keep an always-on campaign and use the ad scheduler to run additional short-burst campaigns alongside it.
 
 ---
 

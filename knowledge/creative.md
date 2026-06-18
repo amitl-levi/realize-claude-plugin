@@ -203,7 +203,7 @@ Creative fatigue is one of the most common reasons for performance plateaus. Cre
 
 - Add creative variations across formats (static, motion, carousel).
 - Experiment with new messaging angles.
-- Consider upselling Display if the advertiser isn't using it.
+- Consider adding Display if it's not part of the current mix.
 - Make the refresh **significant** — not just a word or two. The goal is to present a different angle the audience hasn't seen.
 
 ### Narrow Targeting + Fatigue
