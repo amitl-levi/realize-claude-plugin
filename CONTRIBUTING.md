@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for your interest in improving the Realize Claude Plugin. Contributions of all shapes are welcome — bug reports, doc fixes, new skills, test scenarios, MCP sync PRs.
+Thanks for your interest in improving the Realize Plugin. Contributions of all shapes are welcome — bug reports, doc fixes, new skills, test scenarios, MCP sync PRs.
 
 ## Ground rules
 

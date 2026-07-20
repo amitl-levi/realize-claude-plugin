@@ -4,6 +4,9 @@ All notable changes to this plugin will be documented here. Format loosely follo
 
 ## [Unreleased]
 
+### Changed
+- **Plugin renamed** — `name` in both manifests (`.claude-plugin/plugin.json`, `.codex-plugin/plugin.json`) changed from `realize-ads-api` to `realize-plugin`, and a `displayName` of `Realize Plugin` added. Install commands, the skill-invocation namespace (`/realize-plugin:<skill>`), and doc titles updated to match. The GitHub repository name (`taboola/realize-claude-plugin`) and all repo URLs are unchanged. `Realize Plugin` is the approved short form of the "Realize MCP and Skills Plugin" naming (drops the Claude-specific framing since the plugin targets Codex too).
+
 ### Added
 - **`os/guardrails.md` — *Publisher and site framing — measurable performance, not character* section.** New runtime rule sitting between *Privacy and brand-safety language* and *Performance framing*. Establishes the approved phrasing pattern for site / publisher recommendations (*"<Action> sites with <measured criterion> over <timeframe>"*) and ties it back to the existing frozen brand phrases (*Embedded publisher integrations*, *Code on page integrations*) so the rule reads as brand-voice extension, not a banned-word list. Adds a corresponding bullet to the silent self-check. Anchors to the brand-voice review by product leadership, June 2026.
 - **`scripts/brand-check.sh` defense-in-depth FAIL patterns**: *Publisher-character framing* and *Rescue / salvage framing*. Catches qualitative judgments applied to publisher inventory in static markdown — runtime is governed by the guardrail above, this is the build-time net.

@@ -1,44 +1,42 @@
-# Install the Realize Claude Plugin
-
-> **Status:** the plugin is not yet published to a Claude Code marketplace. Until it is, **use the local-dev path below**. The marketplace path is documented for reference but won't work yet.
+# Install the Realize Plugin
 
 ## Prerequisites
 - [Claude Code](https://claude.ai/claude-code) CLI installed (`claude --version` works).
 - A Realize account (Taboola SSO).
 - Network access to `https://mcp.realize.com/mcp`.
-- Git installed locally.
+- Port `3000` free locally for the OAuth callback (see [OAuth & the callback port](#oauth--the-callback-port) below).
 
 ---
 
-## Install — local-dev path (works today)
+## Install — marketplace path *(recommended)*
 
-Clone the repo, then launch Claude Code with the `--plugin-dir` flag pointing at it:
+Run these **inside a Claude Code session at the prompt** (they are slash commands, not shell commands):
+
+```
+/plugin marketplace add anthropic/claude-plugins-community
+/plugin install realize-plugin@claude-community
+```
+
+The first command registers the community marketplace with your CLI; the second installs the plugin from it. Installing the plugin brings its skills, the `realize-analyst` agent, and the Realize MCP wiring — no separate MCP setup required.
+
+On your first Realize tool call, your browser opens for Taboola SSO. After sign-in, you can run prompts.
+
+---
+
+## Install — local-dev path *(contributors)*
+
+Use this to iterate on skills, run test scenarios, or work in a restricted/air-gapped environment. Clone the repo and launch Claude Code with `--plugin-dir`:
 
 ```bash
 git clone https://github.com/taboola/realize-claude-plugin
 claude --plugin-dir ./realize-claude-plugin
 ```
 
-That's it. `--plugin-dir` loads the plugin (skills, agent, and MCP wiring) directly from the local directory — no marketplace required.
+`--plugin-dir` loads the plugin (skills, agent, and MCP wiring) directly from the local directory — no marketplace required.
 
-On your first tool call, your browser opens for Taboola SSO. After sign-in, you can run prompts.
-
-**Picking up code changes:** after `git pull`, run `/reload-plugins` inside the Claude Code session to refresh without restarting the CLI.
+**Picking up code changes:** after `git pull`, run `/reload-plugins` inside the session to refresh without restarting the CLI.
 
 **Loading multiple plugins at once:** repeat the flag, e.g. `claude --plugin-dir ./realize-claude-plugin --plugin-dir ./other-plugin`.
-
----
-
-## Install — marketplace path (once published)
-
-The commands below are run **inside a Claude Code session at the prompt** (slash commands), not in your shell.
-
-```
-/plugin marketplace add <marketplace-source>
-/plugin install realize-ads-api@<marketplace-name>
-```
-
-`<marketplace-source>` can be a GitHub shorthand (`owner/repo`), a full git URL, a local path, or a URL to a `marketplace.json`. `<marketplace-name>` is the `name` field declared in that marketplace's `marketplace.json`. The exact values will be filled in here once the Realize team publishes the marketplace.
 
 ---
 
@@ -54,11 +52,24 @@ If accounts come back, the install is good.
 
 ---
 
+## OAuth & the callback port
+
+The Realize OAuth flow requires a **stable localhost redirect on port `3000`**. The bundled `.mcp.json` sets `oauth.callbackPort: 3000` for this reason. If authentication fails with a port/redirect error (the callback lands on a random port such as `11337`), register the MCP server manually with the correct port from your shell:
+
+```bash
+claude mcp remove realize-mcp
+claude mcp add --transport http --callback-port 3000 realize-mcp https://mcp.realize.com/mcp
+```
+
+Then retry the OAuth flow. This forces the port-3000 redirect the Taboola auth server expects.
+
+---
+
 ## Optional: opt in to skip the permission prompt for write tools
 
 By default, the first call to each of the 6 Realize write tools (`create_campaign`, `update_campaign`, `create_native_item`, `update_native_item`, `create_display_item`, `update_display_item`) triggers a Claude Code permission prompt. This is **defense in depth on top of** the plugin's own preview-then-confirm gate (see [`os/guardrails.md`](os/guardrails.md) → "Write tool gate"). Both checks are recommended.
 
-If you want to skip the harness-level prompt locally (the plugin gate still fires on every write):
+If you want to skip the harness-level prompt locally (the plugin gate still fires on every write), copy the example file into place:
 
 ```bash
 cp .claude/settings.local.json.example .claude/settings.local.json
@@ -76,7 +87,7 @@ The Codex build wires the Realize remote MCP and ships the system-prompt + knowl
 
 Two things differ from the Claude Code install:
 
-1. **Manifest name.** Codex loads `.codex-plugin/plugin.json`, where the plugin is registered as `realize-ads-api` (not `realize`). When installing into a Codex marketplace, use `realize-ads-api` as the plugin slug.
+1. **Manifest name.** Codex loads `.codex-plugin/plugin.json`, where the plugin is registered as `realize-plugin`. When installing into a Codex marketplace, use `realize-plugin` as the plugin slug.
 2. **MCP URL / port.** The shared `.mcp.json` points at `https://mcp.realize.com/mcp` with OAuth callback port `3000`. The Codex build inherits this endpoint by default. Confirm with the Realize team whether your Codex deployment uses the same endpoint before installing — if Codex routes the realize-mcp differently, do not modify the shared `.mcp.json`; raise it with the Realize team for guidance on the correct override mechanism for your Codex environment.
 
 After install, run a read prompt the same as on Claude Code:
@@ -91,10 +102,10 @@ If a write is attempted on Codex, the preview-then-confirm gate from `os/guardra
 
 ## Troubleshooting
 
-- **Browser didn't open for OAuth** → free port `3000`, retry.
+- **Browser didn't open / OAuth failed on the wrong port** → free port `3000` and re-register the MCP with `--callback-port 3000` (see [OAuth & the callback port](#oauth--the-callback-port)), then retry.
 - **`search_accounts` returns nothing** → wrong SSO realm; check your Taboola login.
 - **Wrong account in a write preview** → re-run the `accounts` skill before retrying.
-- **`/plugin install` says "unknown marketplace"** → the marketplace hasn't been added yet. Run `/plugin marketplace add <source>` first, or fall back to the local-dev path above.
+- **`/plugin install` says "unknown marketplace"** → run `/plugin marketplace add anthropic/claude-plugins-community` first, then install.
 - **Changes to a local plugin aren't visible** → run `/reload-plugins` inside the session.
 
 Full docs: [README.md](README.md) · Claude Code plugin docs: https://code.claude.com/docs/en/plugins

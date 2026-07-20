@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# realize-ads-api — auto-install the hosted Realize MCP server.
+# realize-plugin — auto-install the hosted Realize MCP server.
 #
 # Runs at SessionStart via .claude/settings.json. Idempotent.
 #
