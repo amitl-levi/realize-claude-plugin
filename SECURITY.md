@@ -5,7 +5,7 @@
 If you believe you have found a security issue in this plugin, please report
 it privately. **Do not** open a public GitHub issue for security reports.
 
-- Email: `security@taboola.com` <!-- TODO: confirm the correct address before first public release -->
+- Email: `security@taboola.com`
 - Include: a description of the issue, reproduction steps, and any relevant
   context (plugin version, Claude Code version, whether remote or local MCP
   was in use).

@@ -87,3 +87,6 @@ jobs:
               sys.exit(1)
           print("All frontmatter valid.")
           PY
+
+      - name: Brand and guardrail lint
+        run: bash scripts/brand-check.sh

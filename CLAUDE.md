@@ -91,7 +91,7 @@ When [taboola/realize-mcp](https://github.com/taboola/realize-mcp) ships a new v
 
 ## Conventions
 
-- Plugin name in `plugin.json`: lowercase, no hyphens (`realize`).
+- Plugin `name` in `plugin.json`: `realize-plugin` (lowercase, hyphen-separated). Display name (`displayName`): `Realize Plugin`.
 - Skill directory names: lowercase, hyphen-separated (`manage-campaigns`).
 - Agent filenames: `<name>.md` matching the `name:` frontmatter.
 - YAML frontmatter must be valid — CI validates this (`.github/workflows/validate.yml`).
