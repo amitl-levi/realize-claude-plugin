@@ -145,7 +145,7 @@ Very large result sets are auto-truncated server-side. Narrow the query (shorter
 ## Support
 
 For product or security concerns, bug reports, and feature requests, open an issue at
-[github.com/taboola/realize-mcp/issues](https://github.com/taboola/realize-claude-plugin/issues).
+[github.com/taboola/realize-claude-plugin/issues](https://github.com/taboola/realize-claude-plugin/issues).
 
 ---
 
