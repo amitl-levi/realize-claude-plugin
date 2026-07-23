@@ -140,13 +140,26 @@ Every write preview must lead with `▶ WRITE TARGET: <account name> (<account i
 **CSV output was truncated.**
 Very large result sets are auto-truncated server-side. Narrow the query (shorter date range, specific `campaign_id`, higher sort discrimination) and retry.
 
+---
+
+## Support
+
+For product or security concerns, bug reports, and feature requests, open an issue at
+[github.com/taboola/realize-mcp/issues](https://github.com/taboola/realize-claude-plugin/issues).
+
+---
+
+## Privacy & Data Handling
+
+Realize Plugin accesses the Realize MCP using your OAuth credentials and returns data only to your connected MCP client. Information processed in connection with your use of Realize Plugin is handled in accordance with the [Taboola Privacy Policy](https://policies.taboola.com/privacy-policy/).
+
+---
+
 ## License
 
-[Apache 2.0](LICENSE).
+Licensed under the Apache License 2.0. See [LICENSE](LICENSE) for details.
 
-## Security
-
-Please report security issues privately — see [SECURITY.md](SECURITY.md).
+---
 
 ## Contributing
 
