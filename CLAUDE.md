@@ -26,12 +26,18 @@ This is a thin Claude Code plugin that wraps the [Realize remote MCP](https://gi
            ├──► reports skill          → 4 report tools (CSV output)
            ├──► optimize-campaign skill → diagnoses underperformance; hands write
            │                              prescriptions to manage-campaigns
-           └──► manage-campaigns skill → 6 write tools: create_campaign, update_campaign,
-                                         create_native_item, update_native_item,
-                                         create_display_item, update_display_item.
-                                         Tiered preview-then-confirm with mandatory
-                                         ▶ WRITE TARGET account header.
-                                         UI fallback for delete/duplicate/bulk ops.
+           ├──► manage-campaigns skill → 6 write tools: create_campaign, update_campaign,
+           │                             create_native_item, update_native_item,
+           │                             create_display_item, update_display_item.
+           │                             Tiered preview-then-confirm with mandatory
+           │                             ▶ WRITE TARGET account header.
+           │                             UI fallback for delete/duplicate/bulk ops.
+           │
+           └──► support skill  → NO MCP tools. Reads the local Claude Code
+                                        session transcript and renders one Markdown
+                                        file the user emails to Support@taboola.com.
+                                        Preview-then-confirm; writes locally only,
+                                        transmits nothing. Entry point: /support.
                      │
                      ▼
 ┌────────────────────────────────────────┐
@@ -46,6 +52,32 @@ This is a thin Claude Code plugin that wraps the [Realize remote MCP](https://gi
 
 ### No hooks
 This plugin does not use Claude Code hooks. The remote MCP handles token refresh at the transport layer, so adding hooks here would be overhead without benefit.
+
+### The support bundle exports the transcript, never a summary
+`support` is the one skill that touches no MCP tool. It reads the local Claude Code session transcript and renders it for Taboola Professional Services.
+
+Everything in the bundle above the transcript — the diagnostic table, the failed-action list, the ordered action log — is extracted **mechanically by the script**, not written by the model. This is deliberate and worth preserving: the bundle exists precisely for cases where the plugin got something wrong, and a model-authored summary of its own mistake reproduces the mistake. The model's judgment is used for exactly one field, the case title. Don't "improve" this by having the model narrate what went wrong.
+
+Three constraints that are easy to break by accident:
+
+- **Session identification uses `CLAUDE_CODE_SESSION_ID`.** A project folder normally holds several `.jsonl` sessions, so the newest-file fallback really can grab the wrong conversation. It exists only as a last resort and surfaces `confidence: guessed` when used — keep that surfaced.
+- **Redaction strips credentials but keeps business IDs.** `account_id` / `campaign_id` / `item_id` are preserved on purpose; PS can't reproduce anything without them. Don't "harden" this by masking them.
+- **No upload path, by design.** The script writes one local file and prints the path. Adding transmission would turn a local diagnostic into an outbound flow of customer campaign data — that's a privacy-review decision, not a refactor.
+- **User text goes in by file, never as a shell argument.** `--complaint-file` / `--title-file` exist because a quoted shell argument silently rewrites the text: `$12.40` becomes `2.40`, `$500` becomes `00`, and backticks or `$(…)` execute. Currency is everywhere in this domain and users paste error text they didn't write. Collapsing this back to `--complaint "…"` for brevity reintroduces both the corruption and the injection.
+- **Redact before shortening, and cover both value shapes.** Slicing first can cut a credential below the length the patterns match on. The actions table renders inputs as `key=value`, which a JSON-shaped pattern never matches — that gap leaked plaintext secrets in review.
+- **Redaction targets credentials, not prose.** Where the parameter name is known, match on the key (`redactValue`); reserve pattern-matching for free text. An earlier regex that matched `secret:` / `authorization:` anywhere shredded legitimate ad copy — "Secret: Summer Sale" became "Secret: `<redacted>` Sale". Over-redaction destroys the evidence the bundle exists to carry, which is worse than the leak it guards.
+- **The git-work-tree refusal is a control, not a suggestion.** `findGitRoot` blocks writes inside any repo. Customer data committed to this public repo is the worst outcome this feature can produce, and it is one bad `--out` away. Don't relax it to a warning.
+
+  A `--allow-git` override exists for maintainers who need a bundle inside a checkout deliberately. It is **intentionally absent from the refusal message and from SKILL.md**: the model that hits the error reads that message as its next instruction, and the correct next step is a different path, not a bypass. Don't "improve" the error by naming the flag.
+
+- **Realize tool results get a much larger truncation budget than other output** (`MAX_REALIZE_RESULT_CHARS` vs `MAX_RESULT_CHARS`). A report CSV usually *is* the case — "the CPA here disagrees with the UI" is answered by the rows behind the number. Under the old uniform 2,000-char cap only ~13 of 250 rows survived, so the disputed row was typically the one missing. Bulk output from other tools stays tightly capped so the bundle remains email-attachable.
+
+Run `node skills/support/scripts/test-build-bundle.js` after touching the script — CI runs it too. Add cases there rather than testing via inline `node -e`: the rules are dense with backslashes and dollar signs, and shell escaping produced two false results during review.
+
+### The guardrails carve-out for `/support` is load-bearing
+`os/guardrails.md` bans surfacing skill names, `@taboola.com` addresses, and local file paths. The escalation message needs all three, so *Internal tools, skills, and infrastructure — never reference* carries an explicit carve-out.
+
+If you tighten those bans later, **re-check the carve-out** — without it the model silently stops offering `/support`, and the failure is invisible (a feature that quietly never fires, not an error). Scenario 18 in `tests/test-scenarios-read.md` is the regression test.
 
 ### No direct curl / no API client code
 All Realize API access flows through MCP tools. Do not add Bash curl calls that hit Realize endpoints directly — that bypasses the MCP's rate limiting, auth handling, and safety guarantees.
