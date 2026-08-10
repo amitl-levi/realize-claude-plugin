@@ -56,7 +56,9 @@ This plugin does not use Claude Code hooks. The remote MCP handles token refresh
 ### The support bundle exports the transcript, never a summary
 `support` is the one skill that touches no MCP tool. It reads the local Claude Code session transcript and renders it for Taboola Professional Services.
 
-Everything in the bundle above the transcript — the diagnostic table, the failed-action list, the ordered action log — is extracted **mechanically by the script**, not written by the model. This is deliberate and worth preserving: the bundle exists precisely for cases where the plugin got something wrong, and a model-authored summary of its own mistake reproduces the mistake. The model's judgment is used for exactly one field, the case title. Don't "improve" this by having the model narrate what went wrong.
+Everything in the bundle above the transcript — the Summary, the diagnostic table, the failed-action list, the ordered action log — is extracted **mechanically by the script**, not written by the model. This is deliberate and worth preserving: the bundle exists precisely for cases where the plugin got something wrong, and a model-authored summary of its own mistake reproduces the mistake. Don't "improve" this by having the model narrate what went wrong.
+
+The model now authors **nothing** in the bundle. The case subject was the last model-written field and is now the user's complaint text (see *The Summary section is for PS's case Description* below).
 
 Three constraints that are easy to break by accident:
 
@@ -71,6 +73,23 @@ Three constraints that are easy to break by accident:
   A `--allow-git` override exists for maintainers who need a bundle inside a checkout deliberately. It is **intentionally absent from the refusal message and from SKILL.md**: the model that hits the error reads that message as its next instruction, and the correct next step is a different path, not a bypass. Don't "improve" the error by naming the flag.
 
 - **Realize tool results get a much larger truncation budget than other output** (`MAX_REALIZE_RESULT_CHARS` vs `MAX_RESULT_CHARS`). A report CSV usually *is* the case — "the CPA here disagrees with the UI" is answered by the rows behind the number. Under the old uniform 2,000-char cap only ~13 of 250 rows survived, so the disputed row was typically the one missing. Bulk output from other tools stays tightly capped so the bundle remains email-attachable.
+
+### The Summary section is for PS's case Description
+Requested by the PS manager, and shaped by the constraint above. Case intake copies an email's **subject into the case Subject** and its **body into the case Description**, so the bundle now renders:
+
+- a copy-ready **subject** = the user's complaint, one line, capped at `MAX_SUBJECT_CHARS`, with the first account ID appended for triage;
+- **§1 Summary** = `EMAIL_PROLOG` (*"This case has been created by the Realize Plugin…"*) followed by mechanically-extracted facts, which the user pastes as the email body.
+
+The tempting mistake is to satisfy "we want a summary" with a model-written narrative. That is the exact thing the section above forbids, so §1 carries only counts, tool names, and file paths. What makes it genuinely useful to PS is the attribution: **which Realize tools ran, which skills were invoked, and which knowledge files were read.** That separates *"the plugin read the right guidance and still got it wrong"* from *"the plugin never read it"* — different bugs with different fixes, previously indistinguishable from the outside. `knowledgeRef` is deliberately narrow (only `knowledge/`, `os/`, `agents/`, `skills/**/SKILL.md`, `skills/**/references/`); widening it to every file touched turns a signal into noise.
+
+It is also **anchored to the plugin root**, not pattern-matched anywhere in the path. Unanchored, a user's own `~/Documents/os/notes.md` was reported to PS as plugin guidance — worse than reporting nothing, because the section exists to answer "did it read the guidance?" and a false entry answers it wrongly. The root is derived from `__dirname`; `knowledgeRef` takes an injectable root so tests don't depend on the checkout location.
+
+Two more traps in this area, both found in review:
+
+- **The subject must not be squeezed out by its own suffix.** `account_id` is an opaque API string with no length bound. A `slice(0, MAX - suffix.length - 1)` goes negative on a long one and slices *from the end*, which replaced the entire complaint with a bare `…`. `MIN_SUBJECT_TEXT_CHARS` now guarantees the user's words win and the account suffix is dropped instead.
+- **The complaint is redacted, not trusted.** It is the user's own prose, so it is never rewritten — but users paste error output they never read, and that string now travels into an email subject. `redact()` is safe to apply here precisely because its flat rule is `=`-only with a length floor, so sentences survive while `Bearer …` does not.
+
+§1 also states in the file that it is mechanical and points at the transcript. Keep that line — it is what stops a reader treating the bullet list as the plugin's testimony about itself.
 
 Run `node skills/support/scripts/test-build-bundle.js` after touching the script — CI runs it too. Add cases there rather than testing via inline `node -e`: the rules are dense with backslashes and dollar signs, and shell escaping produced two false results during review.
 

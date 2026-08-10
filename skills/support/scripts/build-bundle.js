@@ -29,6 +29,22 @@ const path = require('path');
 const os = require('os');
 
 const SUPPORT_EMAIL = 'Support@taboola.com';
+
+// Prepended to the summary so the case opens with its own provenance. Requested
+// by PS: a Description that starts mid-diagnostics reads like a forwarded stack
+// trace, and the agent picking up the case has no idea what produced it.
+const EMAIL_PROLOG =
+  'This case has been created by the Realize Plugin, please find the interaction summary below.';
+
+// Case intake puts the email subject into the case Subject field, which is a
+// single short line. The user's own words are the subject (per PS), so they have
+// to survive being cut to something a triage queue can read.
+const MAX_SUBJECT_CHARS = 120;
+
+// Floor on how much of the user's own sentence must survive in the subject. If
+// the account suffix would leave less than this, the suffix is dropped instead.
+const MIN_SUBJECT_TEXT_CHARS = 40;
+
 const MAX_RESULT_CHARS = 2000;           // per non-Realize tool result (bulk output)
 const MAX_REALIZE_RESULT_CHARS = 20000;  // per Realize result — this is the evidence
 const MAX_THINKING_CHARS = 1200; // per thinking block
@@ -299,6 +315,12 @@ function analyze(records) {
     toolResults: 0,     // tool results, which the transcript also stores as "user" records
     realizeCalls: [],   // {name, input, ok, error, ts}
     otherTools: new Map(),
+    // What guidance the plugin actually consulted before answering. PS needs
+    // this to separate two different bugs that look identical from outside:
+    // the plugin read the right guidance and still got it wrong, versus the
+    // plugin never read it. Extracted from tool calls, not self-reported.
+    knowledgeFiles: new Set(),
+    skillsUsed: new Set(),
     accountIds: new Set(),
     campaignIds: new Set(),
     itemIds: new Set(),
@@ -355,8 +377,17 @@ function analyze(records) {
           facts.realizeCalls.push(call);
           if (block.id) callsById.set(block.id, call);
         } else if (block.name) {
-          facts.otherTools.set(block.name, (facts.otherTools.get(block.name) || 0) + 1);
+          // A recorded `Skill` call is already surfaced by name under "Skills
+          // invoked"; counting it here as well double-reports the same call.
+          if (!(block.name === 'Skill' && input.skill)) {
+            facts.otherTools.set(block.name, (facts.otherTools.get(block.name) || 0) + 1);
+          }
         }
+
+        if (block.name === 'Skill' && input.skill) facts.skillsUsed.add(String(input.skill));
+        const fp = input.file_path || input.path || input.notebook_path;
+        const ref = typeof fp === 'string' ? knowledgeRef(fp) : '';
+        if (ref) facts.knowledgeFiles.add(ref);
       }
 
       if (block.type === 'tool_result') {
@@ -377,6 +408,45 @@ function collectIds(obj, facts) {
   for (const m of json.matchAll(/"account_id"\s*:\s*"?([^",}]+)"?/g)) facts.accountIds.add(m[1]);
   for (const m of json.matchAll(/"campaign_id"\s*:\s*"?([^",}]+)"?/g)) facts.campaignIds.add(m[1]);
   for (const m of json.matchAll(/"item_id"\s*:\s*"?([^",}]+)"?/g)) facts.itemIds.add(m[1]);
+}
+
+// The plugin's own guidance directories, matched against a path already made
+// relative to the plugin root. Deliberately narrow: the question is "which
+// guidance did it consult", not "every file it touched". A session that read the
+// user's own spreadsheet has not consulted knowledge.
+const KNOWLEDGE_REF =
+  /^(?:(?:knowledge|os|agents)\/[^/]+\.md|skills\/[^/]+\/(?:SKILL\.md|references\/[^/]+\.md))$/i;
+
+let cachedPluginRoot = null;
+
+/** This plugin's checkout root — `skills/support/scripts` is three levels down. */
+function pluginRoot() {
+  if (cachedPluginRoot === null) cachedPluginRoot = path.resolve(__dirname, '..', '..', '..');
+  return cachedPluginRoot;
+}
+
+/**
+ * Label a read file as a knowledge resource, or '' if it isn't one.
+ *
+ * Anchored to the plugin root rather than matched anywhere in the path. Without
+ * the anchor a user's own `~/Documents/os/notes.md` was reported to PS as plugin
+ * guidance, which is worse than reporting nothing: the section exists so PS can
+ * tell "read the right guidance and still got it wrong" from "never read it",
+ * and a false entry answers that question incorrectly.
+ *
+ * `root` is injectable for tests; production always uses the real checkout.
+ */
+function knowledgeRef(p, root) {
+  const baseFs = path.resolve(root === undefined ? pluginRoot() : String(root)).replace(/\\/g, '/');
+  const fullFs = path.resolve(String(p)).replace(/\\/g, '/');
+
+  // Compared case-insensitively because Windows paths routinely differ only in
+  // case, but the label is sliced from the case-preserved path so `SKILL.md`
+  // keeps its name.
+  if (!fullFs.toLowerCase().startsWith(`${baseFs.toLowerCase()}/`)) return '';
+
+  const rel = fullFs.slice(baseFs.length + 1);
+  return KNOWLEDGE_REF.test(rel) ? rel : '';
 }
 
 function extractText(content) {
@@ -411,6 +481,130 @@ function draftTitle(facts) {
   return 'Realize Plugin — support request';
 }
 
+/**
+ * The email subject, and therefore the case Subject field.
+ *
+ * PS asked for the user's own words here rather than a title written about them.
+ * That also removes the last model-authored field in the bundle, which is the
+ * direction the rest of this file already goes: the user reported the problem,
+ * so the user's sentence is the most faithful summary of it available.
+ *
+ * Collapsed to one line — a newline in a subject header truncates it at the
+ * break in most mail clients, silently dropping the rest.
+ */
+function emailSubject(complaint, facts) {
+  // Redacted first, then shortened — the ordering the rest of this file follows,
+  // because slicing can cut a credential below the length its pattern matches on.
+  // Users paste error output they did not author, and this string now travels
+  // into an email subject line, so a token in it would leave the machine.
+  // `redact` is safe on prose by construction: the flat rule is `=`-only with a
+  // length floor, so ordinary sentences are untouched.
+  //
+  // Backticks are stripped, not escaped: the subject is rendered inside a fenced
+  // block for copying, and a stray backtick there closes the fence early and
+  // swallows the rest of the file's formatting.
+  const text = redact(String(complaint || ''))
+    .replace(/`/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!text) return draftTitle(facts);
+
+  // Account ID earns its place in the subject: PS triages by account, and it is
+  // the one thing the user's sentence reliably omits.
+  const suffix = facts.accountIds.size ? ` (account ${[...facts.accountIds][0]})` : '';
+
+  // The user's words are the point of this subject, so they get the space first.
+  // account_id is an opaque API-supplied string with no length guarantee; when
+  // the suffix cannot fit, drop it rather than let it push the complaint out of
+  // the subject line describing that complaint. (A naive
+  // `slice(0, MAX - suffix.length - 1)` goes negative here and slices from the
+  // end, which silently replaced the entire complaint with an ellipsis.)
+  // Section 2 still lists every account acted on, so nothing is lost.
+  const room = MAX_SUBJECT_CHARS - suffix.length;
+  if (room < MIN_SUBJECT_TEXT_CHARS) return clampChars(text, MAX_SUBJECT_CHARS);
+  return `${clampChars(text, room)}${suffix}`;
+}
+
+function clampChars(s, max) {
+  if (s.length <= max) return s;
+  return `${s.slice(0, Math.max(1, max - 1)).trimEnd()}…`;
+}
+
+/**
+ * The Summary section, and the text the user pastes as the email body.
+ *
+ * Every line is derived from the session log. There is deliberately no written
+ * account of what went wrong: this bundle exists for the cases where the plugin
+ * misread the request, and a narrative composed by that same plugin reproduces
+ * the misreading in the one document meant to expose it. Counts, tool names and
+ * file paths cannot be wrong in that way, so those are what the summary carries.
+ */
+function renderSummary(facts) {
+  const failed = facts.realizeCalls.filter((c) => c.ok === false);
+  const succeeded = facts.realizeCalls.filter((c) => c.ok === true);
+  const actionNames = [...new Set(facts.realizeCalls.map((c) => c.name))];
+  const L = [];
+
+  L.push('## 1. Summary');
+  L.push('');
+  L.push(EMAIL_PROLOG);
+  L.push('');
+  L.push(`- **Session:** \`${facts.sessionId || 'unknown'}\` — ${facts.firstTs || '?'} → ${facts.lastTs || '?'}`);
+  L.push(`- **Exchange:** ${facts.userTurns} message(s) from the user, ${facts.assistantTurns} repl(y/ies) from the plugin.`);
+  L.push(`- **Accounts acted on:** ${setOr(facts.accountIds, 'none')}`);
+  if (facts.campaignIds.size) L.push(`- **Campaigns acted on:** ${setOr(facts.campaignIds, 'none')}`);
+  if (facts.itemIds.size) L.push(`- **Items acted on:** ${setOr(facts.itemIds, 'none')}`);
+  L.push(
+    `- **Realize actions:** ${facts.realizeCalls.length} attempted — ` +
+      `${succeeded.length} succeeded, **${failed.length} failed**.`
+  );
+  L.push(
+    `- **Realize tools used:** ${
+      actionNames.length ? actionNames.map((n) => `\`${n}\``).join(', ') : 'none'
+    }`
+  );
+  L.push(
+    `- **Skills invoked:** ${
+      facts.skillsUsed.size ? [...facts.skillsUsed].map((s) => `\`${s}\``).join(', ') : 'none recorded'
+    }`
+  );
+  L.push(
+    `- **Knowledge resources read:** ${
+      facts.knowledgeFiles.size
+        ? [...facts.knowledgeFiles].map((k) => `\`${k}\``).join(', ')
+        : 'none recorded'
+    }`
+  );
+  if (facts.otherTools.size) {
+    const others = [...facts.otherTools.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8)
+      .map(([n, c]) => `\`${n}\`×${c}`)
+      .join(', ');
+    L.push(`- **Other tools used:** ${others}`);
+  }
+
+  if (failed.length) {
+    L.push('');
+    L.push('**Actions that failed:**');
+    L.push('');
+    for (const f of failed) {
+      const first = oneLine(f.error || '(no error text captured)');
+      L.push(`- \`${f.name}\` — ${first.length > 160 ? `${first.slice(0, 160)}…` : first}`);
+    }
+  }
+
+  L.push('');
+  L.push(
+    '_Every line above is extracted mechanically from the session log; nothing here is ' +
+      'the plugin\'s own account of what happened. That is deliberate — if the plugin ' +
+      'misread the request, a summary it wrote would repeat the misreading. The verbatim ' +
+      'exchange is in the attached file under "Full transcript"._'
+  );
+  L.push('');
+  return L.join('\n');
+}
+
 // ---------------------------------------------------------------------------
 // rendering
 // ---------------------------------------------------------------------------
@@ -424,19 +618,30 @@ function pluginVersion() {
   }
 }
 
-function renderHeader(facts, title, complaint, loc) {
+function renderHeader(facts, subject, complaint, loc) {
   const failed = facts.realizeCalls.filter((c) => c.ok === false);
   const L = [];
 
   L.push(`# Realize Plugin — Support Bundle`);
   L.push('');
-  L.push(`**Suggested case title:** ${title}`);
+  L.push('## How to send this to Support');
   L.push('');
-  L.push(`**How to send this:** attach this file to an email to **${SUPPORT_EMAIL}**, using the title above as the subject line.`);
+  L.push(`1. Start a new email to **${SUPPORT_EMAIL}**.`);
+  L.push('2. **Subject** — copy this line (it becomes the case Subject):');
+  L.push('');
+  L.push('```');
+  L.push(subject);
+  L.push('```');
+  L.push('');
+  L.push('3. **Body** — copy all of **Section 1. Summary** below (it becomes the case Description).');
+  L.push('4. **Attach this file**, so Support also has the failed actions and the full transcript.');
+  L.push('');
+  L.push('_Nothing has been sent anywhere. This file is on your machine and emailing it is your decision._');
   L.push('');
   L.push('---');
   L.push('');
-  L.push('## 1. At a glance');
+  L.push(renderSummary(facts));
+  L.push('## 2. At a glance');
   L.push('');
   L.push('| Field | Value |');
   L.push('|---|---|');
@@ -463,12 +668,15 @@ function renderHeader(facts, title, complaint, loc) {
   }
   L.push('');
 
-  L.push('## 2. What the user reported');
+  L.push('## 3. What the user reported');
   L.push('');
-  L.push(complaint ? complaint : '_The user did not add a description when generating this bundle._');
+  // Redacted, not paraphrased. The wording stays the user's own — `redact` only
+  // removes credential-shaped values, and users paste error output containing
+  // tokens they never looked at.
+  L.push(complaint ? redact(complaint) : '_The user did not add a description when generating this bundle._');
   L.push('');
 
-  L.push('## 3. Failed actions');
+  L.push('## 4. Failed actions');
   L.push('');
   if (!failed.length) {
     L.push('_No Realize action returned an error in this session. The reported problem is likely about the **content** of an answer rather than a failed call — see the transcript below._');
@@ -489,7 +697,7 @@ function renderHeader(facts, title, complaint, loc) {
   }
   L.push('');
 
-  L.push('## 4. Realize actions attempted, in order');
+  L.push('## 5. Realize actions attempted, in order');
   L.push('');
   if (!facts.realizeCalls.length) {
     L.push('_No Realize actions were called in this session._');
@@ -533,7 +741,7 @@ function setOr(set, fallback) {
 
 function renderTranscript(records) {
   const L = [];
-  L.push('## 5. Full transcript');
+  L.push('## 6. Full transcript');
   L.push('');
   L.push('_Credentials are redacted. Long tool outputs are truncated — Realize responses far less aggressively than other output, since they are the evidence. Account, campaign, and item IDs are preserved so the issue can be reproduced._');
   L.push('');
@@ -730,12 +938,20 @@ function main() {
   const records = parseTranscript(loc.file);
   const facts = analyze(records);
   const failed = facts.realizeCalls.filter((c) => c.ok === false);
-  const title = args.title || draftTitle(facts);
+
+  // PS asked for the user's own words as the subject, since case intake copies
+  // the subject into the case Subject field. When the user described the problem
+  // that description *is* the most faithful title available, and preferring it
+  // removes the last model-authored field in the bundle. `--title` stays as the
+  // fallback for a run with no description.
+  const subject = args.complaint
+    ? emailSubject(args.complaint, facts)
+    : args.title || draftTitle(facts);
 
   // Rendered once and reused, so --preview does not pay for a full render and
   // then throw it away.
   const body = truncateToBytes(
-    `${renderHeader(facts, title, args.complaint, loc)}\n${renderTranscript(records)}\n`,
+    `${renderHeader(facts, subject, args.complaint, loc)}\n${renderTranscript(records)}\n`,
     MAX_BUNDLE_BYTES,
     `… [bundle truncated at ${Math.round(MAX_BUNDLE_BYTES / 1024 / 1024)} MB to stay email-attachable]`
   );
@@ -770,7 +986,9 @@ function main() {
     console.log(`Accounts        : ${facts.accountIds.size ? [...facts.accountIds].join(', ') : '(none seen)'}`);
     console.log(`Campaigns       : ${facts.campaignIds.size ? [...facts.campaignIds].join(', ') : '(none seen)'}`);
     console.log(`Local paths     : ${facts.cwd || '(none)'}`);
-    console.log(`Draft title     : ${title}`);
+    console.log(`Skills invoked  : ${facts.skillsUsed.size ? [...facts.skillsUsed].join(', ') : '(none recorded)'}`);
+    console.log(`Knowledge read  : ${facts.knowledgeFiles.size ? [...facts.knowledgeFiles].join(', ') : '(none recorded)'}`);
+    console.log(`Email subject   : ${subject}`);
     console.log(`Would write to  : ${outPath}`);
     console.log(`Size            : ${Math.round(Buffer.byteLength(body, 'utf8') / 1024)} KB`);
     if (isCloudSynced(outPath)) {
@@ -803,8 +1021,9 @@ function main() {
   console.log('WROTE');
   console.log(`Path        : ${outPath}`);
   console.log(`Size        : ${Math.round(Buffer.byteLength(body, 'utf8') / 1024)} KB`);
-  console.log(`Title       : ${title}`);
+  console.log(`Subject     : ${subject}`);
   console.log(`Send to     : ${SUPPORT_EMAIL}`);
+  console.log('Email body  : copy Section 1. Summary from the file');
   if (isCloudSynced(outPath)) {
     console.log('');
     console.log('NOTE: this folder is synced to OneDrive, so a copy has gone to the cloud.');
@@ -822,6 +1041,11 @@ module.exports = {
   truncateToBytes,
   REALIZE_TOOL,
   draftTitle,
+  emailSubject,
+  renderSummary,
+  knowledgeRef,
+  EMAIL_PROLOG,
+  MAX_SUBJECT_CHARS,
   isCloudSynced,
   normalizePath,
   findGitRoot,

@@ -188,6 +188,199 @@ check('does not match unrelated MCP tools', !b.REALIZE_TOOL.test('mcp__sage__ass
 check('does not match plain tools', !b.REALIZE_TOOL.test('Bash'));
 
 // ---------------------------------------------------------------------------
+// email subject — the user's words become the case Subject
+// ---------------------------------------------------------------------------
+
+{
+  const bare = { accountIds: new Set(), realizeCalls: [], firstUserText: '' };
+  const withAcct = { accountIds: new Set(['advertiser_777_prod']), realizeCalls: [], firstUserText: '' };
+
+  eq(
+    'complaint used verbatim as subject',
+    b.emailSubject('the CPA does not match the UI', bare),
+    'the CPA does not match the UI'
+  );
+
+  // The whole reason user text is passed by file. If a subject ever shows
+  // "2.40" the shell got hold of it again.
+  check(
+    'currency survives into the subject',
+    b.emailSubject('reported $12.40, UI shows $18.90', bare).includes('$12.40')
+  );
+
+  eq(
+    'account id appended for triage',
+    b.emailSubject('spend is wrong', withAcct),
+    'spend is wrong (account advertiser_777_prod)'
+  );
+
+  check(
+    'newlines collapsed — a break truncates a real subject header',
+    !/\n/.test(b.emailSubject('line one\nline two', bare))
+  );
+
+  check(
+    'backticks stripped so the copy fence cannot close early',
+    !b.emailSubject('the `spend` number is off', bare).includes('`')
+  );
+
+  {
+    const long = 'x'.repeat(400);
+    const s = b.emailSubject(long, withAcct);
+    check('subject capped', s.length <= b.MAX_SUBJECT_CHARS, `got ${s.length}`);
+    check('capped subject still carries the account', s.includes('advertiser_777_prod'));
+  }
+
+  // The complaint now travels into an email subject line, and users paste error
+  // output they never read. Redaction runs before shortening.
+  {
+    const leaky = 'I got this error: Bearer sk-ant-api03-AAAAAAAAAAAAAAAAAAAA';
+    check('token in a complaint never reaches the subject', !b.emailSubject(leaky, bare).includes('sk-ant-api03'));
+    check('subject shows the redaction rather than dropping the line', b.emailSubject(leaky, bare).includes('<redacted>'));
+  }
+
+  // ...and the ad-copy rule still holds on the complaint: prose is not shredded.
+  eq(
+    'complaint prose with a colon keyword survives',
+    b.emailSubject('the Secret: Summer Sale campaign is off', bare),
+    'the Secret: Summer Sale campaign is off'
+  );
+
+  // Regression: account_id is an opaque API string with no length guarantee. A
+  // naive `slice(0, MAX - suffix.length - 1)` goes negative and slices from the
+  // end, which replaced the whole complaint with a bare "…" — deleting the user's
+  // own words from the subject describing their own problem.
+  {
+    const huge = { accountIds: new Set(['a'.repeat(140)]), realizeCalls: [], firstUserText: '' };
+    const s = b.emailSubject('spend is wrong for yesterday', huge);
+    check('over-long account id does not blow the cap', s.length <= b.MAX_SUBJECT_CHARS, `got ${s.length}`);
+    check('over-long account id does not eat the complaint', s.startsWith('spend is wrong'), `got ${JSON.stringify(s)}`);
+  }
+
+  // No complaint: must still be titled, never blank.
+  check(
+    'falls back to a drafted title with no complaint',
+    b.emailSubject('', { accountIds: new Set(), realizeCalls: [], firstUserText: 'show me spend' }).length > 0
+  );
+}
+
+// ---------------------------------------------------------------------------
+// knowledge / skill attribution — which guidance was actually consulted
+// ---------------------------------------------------------------------------
+
+// The real checkout, so the default (root-less) call is exercised too.
+const ROOT = path.resolve(__dirname, '..', '..', '..');
+const FAKE = path.join('C:', 'somewhere', 'plugin');
+
+eq('knowledge file recognized', b.knowledgeRef(path.join(FAKE, 'knowledge', 'bidding.md'), FAKE), 'knowledge/bidding.md');
+eq('guardrails recognized', b.knowledgeRef(path.join(FAKE, 'os', 'guardrails.md'), FAKE), 'os/guardrails.md');
+eq('agent file recognized', b.knowledgeRef(path.join(FAKE, 'agents', 'realize-analyst.md'), FAKE), 'agents/realize-analyst.md');
+eq('SKILL.md recognized', b.knowledgeRef(path.join(FAKE, 'skills', 'reports', 'SKILL.md'), FAKE), 'skills/reports/SKILL.md');
+eq(
+  'skill reference recognized',
+  b.knowledgeRef(path.join(FAKE, 'skills', 'reports', 'references', 'csv-examples.md'), FAKE),
+  'skills/reports/references/csv-examples.md'
+);
+eq('SKILL.md keeps its casing', b.knowledgeRef(path.join(FAKE, 'skills', 'x', 'SKILL.md'), FAKE), 'skills/x/SKILL.md');
+eq('unrelated file in root ignored', b.knowledgeRef(path.join(FAKE, 'budget.md'), FAKE), '');
+eq('non-markdown ignored', b.knowledgeRef(path.join(FAKE, 'knowledge', 'notes.txt'), FAKE), '');
+
+// The false positive the root anchor exists to kill: a user's own directory that
+// happens to be named like one of ours must not be reported to PS as guidance.
+eq(
+  'knowledge-shaped path outside the plugin root ignored',
+  b.knowledgeRef(path.join('C:', 'Users', 'me', 'Documents', 'os', 'notes.md'), FAKE),
+  ''
+);
+eq(
+  'sibling directory sharing a prefix ignored',
+  b.knowledgeRef(path.join('C:', 'somewhere', 'pluginX', 'knowledge', 'bidding.md'), FAKE),
+  ''
+);
+
+// Default root: resolves against the actual checkout with no argument.
+eq(
+  'real plugin file resolves with no root argument',
+  b.knowledgeRef(path.join(__dirname, '..', 'SKILL.md')),
+  'skills/support/SKILL.md'
+);
+check('file outside the real checkout ignored', b.knowledgeRef(path.join(os.tmpdir(), 'knowledge', 'x.md')) === '');
+
+// ---------------------------------------------------------------------------
+// Summary section — mechanical, and says so
+// ---------------------------------------------------------------------------
+
+{
+  const records = [
+    {
+      type: 'assistant',
+      sessionId: 'sess-1',
+      timestamp: '2026-08-10T10:00:00Z',
+      message: {
+        stop_reason: 'end_turn',
+        content: [
+          { type: 'text', text: 'working on it' },
+          { type: 'tool_use', id: 't1', name: 'Skill', input: { skill: 'realize-plugin:reports' } },
+          { type: 'tool_use', id: 't2', name: 'Read', input: { file_path: path.join(ROOT, 'knowledge', 'bidding.md') } },
+          { type: 'tool_use', id: 't2b', name: 'Read', input: { file_path: path.join('C:', 'Users', 'me', 'os', 'private.md') } },
+          { type: 'tool_use', id: 't3', name: 'mcp__realize-mcp__get_campaign_breakdown_report', input: { account_id: 'acct_9' } },
+          { type: 'tool_use', id: 't4', name: 'mcp__realize-mcp__search_accounts', input: { query: '123' } },
+        ],
+      },
+    },
+    {
+      type: 'user',
+      message: {
+        content: [
+          { type: 'tool_result', tool_use_id: 't3', is_error: true, content: [{ type: 'text', text: '403 Forbidden — not permitted' }] },
+          { type: 'tool_result', tool_use_id: 't4', content: [{ type: 'text', text: 'ok' }] },
+        ],
+      },
+    },
+  ];
+
+  const facts = b.analyze(records);
+  eq('skill invocation captured', [...facts.skillsUsed].join(','), 'realize-plugin:reports');
+  eq('knowledge read captured', [...facts.knowledgeFiles].join(','), 'knowledge/bidding.md');
+  eq('two realize calls seen', facts.realizeCalls.length, 2);
+  check('recorded Skill call not double-counted in otherTools', !facts.otherTools.has('Skill'));
+  eq('Read still counted in otherTools', facts.otherTools.get('Read'), 2);
+
+  const s = b.renderSummary(facts);
+  check('summary opens with the PS prolog', s.includes(b.EMAIL_PROLOG));
+  check('summary names the realize tools used', s.includes('get_campaign_breakdown_report') && s.includes('search_accounts'));
+  check('summary names the skill used', s.includes('realize-plugin:reports'));
+  check('summary names the knowledge read', s.includes('knowledge/bidding.md'));
+  check('summary reports the account', s.includes('acct_9'));
+  check('summary reports the failure count', /1 failed/.test(s));
+  check('summary lists the failing action and its error', s.includes('403 Forbidden'));
+  check('summary discloses that it is mechanical', /extracted mechanically/.test(s));
+  check('summary points at the transcript', /Full transcript/.test(s));
+
+  // Structural rather than keyword-based: prove the section contains no free
+  // prose line at all, instead of hoping a blacklist anticipates the phrasing a
+  // future edit would use.
+  {
+    const prose = s.split('\n').filter((ln) => {
+      const t = ln.trim();
+      if (!t) return false;                                    // blank
+      if (t.startsWith('## ')) return false;                   // heading
+      if (t.startsWith('- ')) return false;                    // fact bullet
+      if (/^\*\*.+:\*\*$/.test(t)) return false;               // bold label
+      if (t === b.EMAIL_PROLOG) return false;                  // PS-requested prolog
+      if (t.startsWith('_') && t.endsWith('_')) return false;  // mechanical disclaimer
+      return true;
+    });
+    check('summary contains no free prose lines', prose.length === 0, `unexpected: ${JSON.stringify(prose)}`);
+  }
+
+  // Empty session must still render a valid summary rather than throwing.
+  const empty = b.analyze([]);
+  const es = b.renderSummary(empty);
+  check('empty session still summarizes', es.includes(b.EMAIL_PROLOG) && /none/.test(es));
+}
+
+// ---------------------------------------------------------------------------
 
 console.log(`${passed} passed, ${failures.length} failed`);
 if (failures.length) {

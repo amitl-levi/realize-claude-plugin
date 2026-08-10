@@ -284,11 +284,14 @@ The currency amounts are the point of this scenario, not decoration — see the 
 - The text after the command appears **verbatim** in the bundle's "What the user reported" section — not paraphrased, not "improved".
 - **`$12.40` and `$18.90` appear intact.** If they render as `2.40` / `8.90`, the complaint was passed as a quoted shell argument and the shell ate `$1` — the skill must write it to a file and use `--complaint-file`. Regression test for silent corruption of the exact figures the case is about.
 - The counts are the conversation, not the log: "Messages from the user" matches what the human actually typed (a 7-message exchange reads 7, not 60+); tool results are counted separately.
-- **Section 4's table is not broken.** Every row renders as one row. A creative title or description containing a newline must not split a row — that corrupts the table from that point down.
+- **Section 5's table is not broken.** Every row renders as one row. A creative title or description containing a newline must not split a row — that corrupts the table from that point down.
+- **The email subject is the user's own sentence**, not a title written about it — `$12.40` / `$18.90` intact, one line, account ID appended. It appears in a copy-ready fenced block under "How to send this to Support".
+- **Section 1 (Summary) opens with** *"This case has been created by the Realize Plugin…"* and lists the Realize tools called, skills invoked, and knowledge files read (e.g. `os/guardrails.md`, `skills/reports/SKILL.md`).
+- **Section 1 contains no narrative** — no sentence describing what the plugin thought, intended, or got wrong. Counts, tool names, and file paths only, closing with the line stating it is mechanically extracted. A prose account here is a fail even if accurate: it's the one thing the bundle must not carry.
 - **Ad copy survives redaction.** If the session touched a creative headed *"Secret: Summer Sale"* or similar, it appears intact. Redaction targets credentials, and mangling creative text defeats the purpose of the bundle.
 - Re-running the command does not overwrite an earlier bundle; the second run either picks a new timestamped name or refuses.
 - The suggested title names the symptom and includes the account ID; it does **not** assert a cause.
-- Section 4 lists every Realize action attempted in order with its result.
+- Section 5 lists every Realize action attempted in order with its result.
 - `grep -iE '"(access_token|refresh_token|password|client_secret)"\s*:\s*"[^<]' <file>` returns nothing.
 - `account_id` / `campaign_id` values **are** present (PS needs them to reproduce).
 - The file is written outside the plugin repo — it contains customer data and must never land in a git working tree.

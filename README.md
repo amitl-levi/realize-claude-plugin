@@ -164,9 +164,17 @@ Optionally describe the problem in the same line:
 /realize-plugin:support the CPA it reported doesn't match what I see in the Realize UI
 ```
 
-You'll get a preview of what will be captured. Once you confirm, it saves a single Markdown file to your Desktop containing the full conversation — every question you asked, every action the plugin took, and every response it got back — plus a suggested case title and the account IDs involved.
+You'll get a preview of what will be captured. Once you confirm, it saves a single Markdown file to your Desktop containing the full conversation — every question you asked, every action the plugin took, and every response it got back — plus a summary of which tools and guidance were used, and the account IDs involved.
 
-**Email that file to [Support@taboola.com](mailto:Support@taboola.com)**, using the suggested title as your subject line.
+**Email it to [Support@taboola.com](mailto:Support@taboola.com).** The file opens with a "How to send this" section giving you the three pieces:
+
+| Email part | What to use |
+|---|---|
+| Subject | The copy-ready line at the top of the file (your own description of the problem) |
+| Body | **Section 1. Summary** — copy it as-is |
+| Attachment | The file itself, so Support gets the failed actions and full transcript |
+
+Subject and body are separated because Taboola's case system reads them into different fields — the subject becomes the case Subject, the body becomes the case Description.
 
 Why the whole transcript rather than a summary: if the plugin misread your question, a summary written by that same plugin would repeat the misreading. The raw exchange lets Support see what actually happened.
 

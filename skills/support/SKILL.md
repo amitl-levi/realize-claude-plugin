@@ -23,7 +23,11 @@ Users run the plugin in their own terminal, so PS has no visibility into these c
 
 **The transcript is the deliverable.** Everything above it in the file is mechanically extracted from the transcript by the script — never written from your own recollection of the conversation.
 
-This is deliberate. If the plugin misread the user, a summary written by the plugin carries that same misreading into the bug report. Only the raw exchange is independent of the bug. So: do not editorialize, do not explain away what happened, and do not "clean up" the user's complaint. Your judgment is used for exactly one thing — writing a good case title.
+This is deliberate. If the plugin misread the user, a summary written by the plugin carries that same misreading into the bug report. Only the raw exchange is independent of the bug. So: do not editorialize, do not explain away what happened, and do not "clean up" the user's complaint.
+
+**Section 1 (Summary) is not an exception.** It exists because PS pastes it into the case Description, but every line in it is a count, a tool name, or a file path pulled from the log — never a narrative. It reports *which* Realize tools ran, *which* skills were invoked, and *which* knowledge files were read, so PS can tell "the plugin had the right guidance and still got it wrong" apart from "the plugin never read the guidance". Those are different bugs. Do not add a prose account of what went wrong to that section.
+
+**You write nothing into this bundle.** The case subject is now the user's own complaint text, so there is no field left for your judgment.
 
 ## Workflow
 
@@ -49,27 +53,21 @@ Then confirm with `AskUserQuestion`: create the file, or cancel.
 
 If the preview says match confidence is **guessed**, tell the user plainly: the exact session couldn't be identified and this may be the wrong conversation. Let them cancel.
 
-### Step 3 — Write a good case title
+### Step 3 — The case subject writes itself
 
-PS triages by subject line, so this matters. Base it on what actually went wrong.
+**Do not compose a title.** The script uses the user's own complaint as the email subject, collapsed to one line, capped for a subject header, with the account ID appended for triage. Case intake copies that subject into the case Subject field, and the user's sentence is the most faithful description of their own problem available.
 
-- Lead with the symptom, not the feature: `Realize Plugin — CPA in report doesn't match UI (account 1721090)`
-- Include the account ID when one is in the preview.
-- If an action failed, name it: `Realize Plugin — campaign creation rejected, "budget below minimum" (account 1721090)`
-- Keep it under ~80 characters.
-- Never invent a cause. `…doesn't match UI` is a symptom; `…because of a timezone bug` is a guess — don't write the guess.
+`--title-file` still exists, but only as the fallback for a run where the user gave no description at all. If they described the problem, the description is the subject.
 
 ### Step 4 — Write the file
 
 **Never pass the complaint or title as a quoted shell argument.** Write them to files first, then point the script at the files:
 
 1. `Write` the user's description verbatim to `complaint.txt` (use the session scratchpad or the system temp folder — never the plugin repo).
-2. `Write` your case title to `title.txt`.
-3. Run:
+2. Run:
 
 ```bash
 node skills/support/scripts/build-bundle.js --write \
-  --title-file <path>/title.txt \
   --complaint-file <path>/complaint.txt
 ```
 
@@ -83,27 +81,30 @@ The complaint is the user's own description — use their words. If they ran the
 
 ### Step 5 — Tell them how to send it
 
-Give them the path and the exact next step:
+Three parts, because case intake maps each one to a different field. The file's own "How to send this to Support" section says the same thing — repeat it in chat so they don't have to open the file to know what to do:
 
 > Saved to `C:\Users\you\Desktop\realize-support-2026-08-09-...md`
 >
-> Email it to **Support@taboola.com** with the subject:
-> *Realize Plugin — CPA in report doesn't match UI (account 1721090)*
+> Email it to **Support@taboola.com**:
+> - **Subject:** *the CPA in the report doesn't match the UI (account 1721090)*
+> - **Body:** copy **Section 1. Summary** from the file
+> - **Attach the file** so Support has the failed actions and full transcript
 
 Say plainly that nothing was sent automatically — sending is their decision.
 
-Then delete the scratch `complaint.txt` / `title.txt` you created in Step 4. They hold the user's description of their problem and serve no purpose once the bundle exists.
+Then delete the scratch `complaint.txt` you created in Step 4. It holds the user's description of their problem and serves no purpose once the bundle exists.
 
 ## What the bundle contains
 
 | Section | Purpose |
 |---|---|
-| Suggested case title + send-to address | So the user has nothing left to figure out |
-| At a glance | Session ID, timestamps, turn counts, accounts/campaigns/items involved, actions attempted, **failed count**, plugin + Claude Code version, platform |
-| What the user reported | The `--complaint` text, verbatim |
-| Failed actions | Every failed Realize action with parameters sent and the error returned |
-| Actions attempted, in order | Ordered table of every Realize action and its result |
-| Full transcript | Every message, tool call, and result — with internal reasoning in collapsible blocks |
+| How to send this to Support | Copy-ready subject, which section is the email body, and the reminder to attach the file |
+| 1. Summary | **Pasted into the case Description.** Opens with the PS-requested prolog, then session facts, Realize tools used, skills invoked, knowledge files read, and any failures. Mechanically extracted — no narrative |
+| 2. At a glance | Session ID, timestamps, turn counts, accounts/campaigns/items involved, actions attempted, **failed count**, plugin + Claude Code version, platform |
+| 3. What the user reported | The `--complaint` text, verbatim. Also the source of the email subject |
+| 4. Failed actions | Every failed Realize action with parameters sent and the error returned |
+| 5. Realize actions attempted, in order | Ordered table of every Realize action and its result |
+| 6. Full transcript | Every message, tool call, and result — with internal reasoning in collapsible blocks |
 
 ## Privacy
 
@@ -118,7 +119,7 @@ Then delete the scratch `complaint.txt` / `title.txt` you created in Step 4. The
 - **Session identification** comes from `CLAUDE_CODE_SESSION_ID`. A project folder usually holds several sessions, so the "newest file" fallback is genuinely unreliable — that's why the preview reports match confidence, and why `guessed` must be surfaced to the user.
 - **The current turn is mid-write.** The transcript is complete up to roughly the user's command message; the assistant reply being composed right now isn't in it yet. Harmless, but don't promise it captured "everything including this reply".
 - **Large sessions get truncated.** Tool results cap at 2,000 characters, user messages at 4,000, internal reasoning at 1,200, and the bundle at 8 MB to stay email-attachable. Truncation is marked inline and never leaves a code fence or `<details>` block unclosed. If a specific large CSV matters to the case, tell the user to attach it separately. Transcripts above 256 MB are refused outright with an explanation rather than crashing.
-- **A missing `--complaint-file` / `--title-file` is fatal, and that's deliberate.** It exits 1 without writing. Continuing would produce a bundle stating *"The user did not add a description"* about a user who did describe the problem — a false statement to support is worse than no bundle. If you see that error, check the path you wrote to.
+- **An unreadable `--complaint-file` is fatal, and that's deliberate.** It exits 1 without writing. Continuing would produce a bundle stating *"The user did not add a description"* about a user who did describe the problem — a false statement to support is worse than no bundle. It would also silently drop the email subject, since the subject is derived from the complaint. If you see that error, check the path you wrote to.
 - **The script refuses to overwrite.** If `--out` points at an existing file it exits 1 rather than clobbering it. Pass `--force` only when the user has asked to replace that specific file. (An auto-generated default name that collides simply gets a `-1` suffix — no error.)
 - **The script refuses to write inside a git repository**, including this one, and exits 1. The bundle holds customer campaign data and this plugin's repo is public, so a bundle committed by accident is a data leak. If you see that error, choose a path outside the repo — the default destination already is one.
 - **Unit tests:** `node skills/support/scripts/test-build-bundle.js` covers the redaction rules, table-cell safety, truncation, and destination guards. Run it after touching the script; CI runs it too.
