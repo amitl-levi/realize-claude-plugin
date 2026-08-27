@@ -257,6 +257,33 @@ check('does not match plain tools', !b.REALIZE_TOOL.test('Bash'));
     check('over-long account id does not eat the complaint', s.startsWith('spend is wrong'), `got ${JSON.stringify(s)}`);
   }
 
+  // Review finding: with no complaint, emailSubject falls back to draftTitle,
+  // which built the subject from raw chat text — a pasted token walked straight
+  // into the email subject through the one door that skipped redaction.
+  {
+    const leakyChat = {
+      accountIds: new Set(),
+      realizeCalls: [],
+      firstUserText: 'help, I get Bearer sk-ant-api03-BBBBBBBBBBBBBBBBBBBB when loading',
+    };
+    check('token in chat text never reaches a drafted title', !b.draftTitle(leakyChat).includes('sk-ant-api03'));
+    check('drafted title shows the redaction instead', b.draftTitle(leakyChat).includes('<redacted>'));
+    check(
+      'backticks stripped from drafted title like the complaint path',
+      !b.draftTitle({ accountIds: new Set(), realizeCalls: [], firstUserText: 'the `spend` is off' }).includes('`')
+    );
+  }
+
+  // Review finding: --title / --title-file got oneLine() but neither the
+  // MAX_SUBJECT_CHARS cap nor redaction — both only applied inside
+  // emailSubject(), which the title path bypasses.
+  {
+    const long = b.parseArgs(['--title', 'y'.repeat(400)]);
+    check('cli title clamped to the subject cap', long.title.length <= b.MAX_SUBJECT_CHARS, `got ${long.title.length}`);
+    const leaky = b.parseArgs(['--title', 'crash log: api_key=sk-ant-api03-CCCCCCCCCCCCCCCCCCCC end']);
+    check('token in a cli title never survives parsing', !leaky.title.includes('sk-ant-api03'));
+  }
+
   // No complaint: must still be titled, never blank.
   check(
     'falls back to a drafted title with no complaint',

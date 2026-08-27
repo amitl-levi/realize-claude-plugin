@@ -79,8 +79,10 @@ function parseArgs(argv) {
   if (!out.preview && !out.write) out.preview = true;
   // A title spanning multiple lines splits the header and gives PS a broken
   // subject line. draftTitle() already collapses whitespace; do the same for
-  // titles that arrive from a file or argument.
-  out.title = oneLine(out.title);
+  // titles that arrive from a file or argument — and give them the same
+  // redact-then-clamp treatment as the complaint, because the title becomes
+  // the email subject when no complaint was supplied, so it leaves the machine.
+  out.title = clampChars(redact(oneLine(out.title)), MAX_SUBJECT_CHARS);
   return out;
 }
 
@@ -474,7 +476,14 @@ function draftTitle(facts) {
       facts.accountIds.size ? ` (account ${[...facts.accountIds][0]})` : ''
     }`;
   }
-  const seed = (facts.firstUserText || '').replace(/\s+/g, ' ').trim();
+  // firstUserText is raw chat text, and this drafted title becomes the email
+  // subject whenever the run had no complaint (emailSubject falls back here) —
+  // so it gets the same redact-first treatment as the complaint path, and the
+  // same backtick strip so the copy fence cannot close early.
+  const seed = redact(String(facts.firstUserText || ''))
+    .replace(/`/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
   if (seed) {
     return `Realize Plugin — ${seed.slice(0, 70)}${seed.length > 70 ? '…' : ''}`;
   }
@@ -1037,6 +1046,7 @@ module.exports = {
   redact,
   redactValue,
   oneLine,
+  parseArgs,
   analyze,
   truncateToBytes,
   REALIZE_TOOL,
