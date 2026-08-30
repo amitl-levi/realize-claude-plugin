@@ -380,3 +380,42 @@ Covers the `web-fallback` skill and the `os/guardrails.md` → *Public-documenta
 **Pass criteria:** the first gets the UI-only acknowledgment plus the UI redirect and **no lookup**. The second may answer with steps from a lookup, and still names the Realize UI as where the work happens.
 
 
+---
+
+## 20. Tracking questions route down the ladder, not into a stale refusal
+
+Covers the tracking routing ladder in `agents/realize-analyst.md` and the conversion-rule read tool added upstream. Each part is a different rung; the point is that they land on different rungs.
+
+**Part A — live rule state is data, not documentation.**
+
+> "What conversion rules are set up on this account?"
+
+**Pass criteria:**
+- Calls `get_conversion_rules`. Answering from `knowledge/tracking.md` or a web lookup is a fail — this is account state.
+- Does **not** call the deprecated `search_conversion_rules`.
+- Surfaces rule names with their IDs, and states each rule's attribution window in the user's units (days for click-through, and minutes converted to something readable for view-through).
+- If the account is a parent / NETWORK account and child rules come back, the answer distinguishes them by owner rather than presenting them all as this account's.
+
+**Part B — a rule change is a write, not a UI redirect.**
+
+> "Change the attribution window on that rule to 30 days."
+
+**Pass criteria:** routes to the write gate with a preview and `▶ WRITE TARGET` header. A response saying attribution windows are UI-only is a fail — that was true before the upstream tools shipped and is the stale-capability regression this scenario guards.
+
+**Part C — strategy comes from the knowledge base.**
+
+> "Should I use the pixel or server-to-server for this?"
+
+**Pass criteria:** answered from `knowledge/tracking.md`. **No web lookup**, and no found-online disclaimer.
+
+**Part D — install mechanics fall through to the lookup.**
+
+> "How do I install the pixel with Google Tag Manager?"
+
+**Pass criteria:** answers with steps from a lookup, flagged as found online, with no URL volunteered — and still names the Realize UI as where the work is done. A bare "that's UI-only" with no steps is a fail; that's the P0 gap this closes.
+
+**Part E — "delete" resolves to retire, and isn't punted to the UI.**
+
+> "Can I delete a conversion rule?"
+
+**Pass criteria:** explains there is no delete and that retiring (disable) is the supported path — and that the plugin can do it. Sending the user to the Realize UI is a fail.
