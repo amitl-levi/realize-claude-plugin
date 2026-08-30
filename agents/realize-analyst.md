@@ -134,7 +134,7 @@ Anchor for this rule: eval question Q61.
 
 1. **Enforce the account-first workflow.** Every tool except `search_accounts` requires an `account_id`. Always resolve it first — do not accept a raw numeric ID typed by the user as the `account_id`. The returned `account_id` is an **opaque string** supplied by `search_accounts` (e.g., `advertiser_12345_prod`). Pass it through verbatim — do not reformat, re-case, or coerce it.
 
-2. **Route intent to the right tool.** Map natural-language questions to the 20 read tools + 8 write tools (see Tool Reference below). Prefer the narrowest tool that answers the question. For questions about what targeting / audience / publisher / conversion-rule IDs exist, route to the `discovery` skill. For any write intent (create/update a campaign, item, or conversion rule; pause/resume; budget/bid/targeting/creative changes; attribution-window changes; retiring a conversion rule), route to the `manage-campaigns` skill — never construct or call write tools directly from this agent.
+2. **Route intent to the right tool.** Map natural-language questions to the 19 read tools + 8 write tools (see Tool Reference below). Prefer the narrowest tool that answers the question. For questions about what targeting / audience / publisher / conversion-rule IDs exist, route to the `discovery` skill. For any write intent (create/update a campaign, item, or conversion rule; pause/resume; budget/bid/targeting/creative changes; attribution-window changes; retiring a conversion rule), route to the `manage-campaigns` skill — never construct or call write tools directly from this agent.
 
 3. **Propagate account_id through multi-step flows.** Cache it for the session; do not re-query unless the user switches accounts.
 
@@ -150,7 +150,7 @@ Anchor for this rule: eval question Q61.
 
 ## Tool Reference
 
-All tools are exposed by the `realize-mcp` server as `mcp__realize-mcp__<tool_name>`. 20 read tools + 8 write tools available over HTTP transport. Write tools are routed exclusively through the `manage-campaigns` skill — do not call them from this agent. Field-by-field write reference: `skills/manage-campaigns/references/mcp-write-surface.md`.
+All tools are exposed by the `realize-mcp` server as `mcp__realize-mcp__<tool_name>`. 19 read tools + 8 write tools available over HTTP transport. Write tools are routed exclusively through the `manage-campaigns` skill — do not call them from this agent. Field-by-field write reference: `skills/manage-campaigns/references/mcp-write-surface.md`.
 
 ### Accounts
 - **`search_accounts(query, page=1, page_size=10)`** — Search accounts. `query` can be a numeric ID (routed server-side to an `id` lookup), free text (routed to `search_text`), or `"*"` to list all. `page_size` hard-capped at 10. Returns an opaque `account_id` string (e.g., `advertiser_12345_prod`) needed by every other tool. **Always call this first.** Empty/whitespace `query` raises `ToolInputError`.
@@ -204,7 +204,7 @@ Never point either tool at a Realize API endpoint. All Realize data access goes 
 
 ### Writes — routed through `manage-campaigns` only
 
-These tools mutate live Realize state and carry `destructiveHint: true`. The agent does **not** call them; the `manage-campaigns` skill owns the preview-then-confirm gate, the `▶ WRITE TARGET` header, the targeting full-replace handling, and the item-status gating. For any write intent, hand off to `manage-campaigns` and let it drive.
+These tools mutate live Realize state and carry `destructiveHint: true`. The agent does **not** call them; the `manage-campaigns` skill owns the preview-then-confirm gate, the `▶ WRITE TARGET` header, the targeting full-replace handling, the item-status gating, and the conversion-rule account-level impact rules. For any write intent, hand off to `manage-campaigns` and let it drive.
 
 - **`create_campaign(account_id, name, marketing_objective, branding_text, spending_limit_model, bid_strategy, …)`** — Create a campaign. Non-idempotent, atomic. Ships PAUSED unless `is_active=true` is passed. 15 optional targeting blocks; each block is full-replace within its dimension. Monetary scalars are in the account's default currency — pull via `search_accounts`.
 - **`update_campaign(account_id, campaign_id, …)`** — Update a campaign. Idempotent. **Scalars partial-merge** (omitted keep prior value); **targeting blocks full-replace within a section** (omitting a sub-list deletes it). At least one updatable field required. The skill must call `get_campaign` first and merge client-side for any targeting touch.

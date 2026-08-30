@@ -1,6 +1,6 @@
 # MCP Write-Surface Reference
 
-> Loaded by `skills/create-campaign/SKILL.md` when a payload needs detailed field coverage. The SKILL.md carries the workflow (8 steps, two-gate activation, pre-write self-eval, forbidden patterns); this file carries the per-tool field reference.
+> Loaded by `skills/manage-campaigns/SKILL.md` when a payload needs detailed field coverage. The SKILL.md carries the workflow (8 steps, two-gate activation, pre-write self-eval, forbidden patterns); this file carries the per-tool field reference.
 
 ---
 
@@ -146,6 +146,28 @@ Fields that CANNOT be changed after create:
 - `pricing_model` — re-create the campaign instead.
 - Campaign type (Native vs Display) — derived from `pricing_model` + first attached item; locked at create. Re-create instead.
 - `account_id` — never move a campaign between accounts.
+
+## 3b. Account-level write tools — `create_conversion_rule` / `update_conversion_rule`
+
+Field reference for the two account-scoped writes. The workflow, tiers, and account-level consequence rules live in `SKILL.md` → *Conversion rules — account-level writes*; this table carries the shapes and units.
+
+| Field | Type / values | Notes |
+|---|---|---|
+| `display_name` | string | Unique per account across **all** statuses; must not contain `^`. |
+| `type` | `BASIC` / `EVENT_BASED` | **Immutable after create.** `BASIC` pairs with `event_name="page_view"`. (The read also returns `ENGAGEMENT` rules; the write surface cannot create or edit those.) |
+| `category` | platform conversion category enum (e.g. `PURCHASE`, `LEAD`) | **Immutable after create.** |
+| `event_name` | string | **Immutable after create.** Only one ACTIVE rule may hold an event — pre-read and check before create. |
+| `condition` | nested tree (`URL_*` / `EVENT_PARAM_*` operators) | **Partial-merge on update** — omitted = kept. Never echo the read payload back. |
+| `look_back_window` | integer, **days** (1–30) | Click-through window. |
+| `view_through_look_back_window` | integer, **minutes** (1–10080) | "7-day view-through" = `10080`, not `7`. |
+| `include_in_total_conversions` | boolean | Account-level blast radius: feeds Total Conversions, which Target CPA / Maximize Conversions bid against. |
+| `include_in_total_value` | boolean | **Defaults to `include_in_total_conversions`** when omitted on create. |
+| `aggregation_type` | `AGGREGATED` / `LAST_VALUE` | Defaults to `AGGREGATED` (sums values). |
+| `effects` | array of `{type, data}` | Values are numeric **strings** (`[{type:"REVENUE", data:"49.99"}]`); pass `[]` for none. |
+| `status` | `ACTIVE` / `DISABLED` / `ARCHIVED` | No delete tool — retiring = status change (destructive tier). |
+| `rule_id` (update only) | numeric id **as a string** | The same id is an **integer** inside `conversion_rules.rules: [{id}]` on campaign writes. |
+
+Read-only fields the update tool rejects as unknown parameters: `id`, `advertiser_id`, `pixel_id`, `exclude_from_campaigns`, `external_id`, `partner`, `tracked_elements`.
 
 ## 4. Per-strategy bid-lever gate matrix
 

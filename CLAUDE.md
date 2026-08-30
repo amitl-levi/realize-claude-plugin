@@ -32,7 +32,8 @@ This is a thin Claude Code plugin that wraps the [Realize remote MCP](https://gi
            │                             create_conversion_rule, update_conversion_rule.
            │                             Tiered preview-then-confirm with mandatory
            │                             ▶ WRITE TARGET account header.
-           │                             UI fallback for delete/duplicate/bulk ops.
+           │                             UI fallback for delete/duplicate/bulk ops
+           │                             and pixel install / test-fire.
            │
            ├──► support skill  → NO MCP tools. Reads the local Claude Code
            │                             session transcript and renders one Markdown
@@ -49,7 +50,7 @@ This is a thin Claude Code plugin that wraps the [Realize remote MCP](https://gi
                      ▼
 ┌────────────────────────────────────────┐
 │ Realize MCP (https://mcp.realize.com)  │
-│  OAuth 2.1, 20 read + 8 write tools    │
+│  OAuth 2.1, 19 read + 8 write tools    │
 │  wired here. Writes routed exclusively │
 │  through the manage-campaigns skill.   │
 └────────────────────────────────────────┘
@@ -151,7 +152,7 @@ So when syncing, grep for the capability by *name* rather than only diffing the 
 grep -rniE 'conversion-rule creation|UI-only|does not expose|no MCP tool' --include='*.md' .
 ```
 
-Also check for a **deprecation** alongside the addition — this release renamed `search_conversion_rules` to `get_conversion_rules` with a hard removal date, and the old name appeared in five files including two knowledge topics. A rename is a breaking change on a timer; note the date in the changelog.
+Also check for a **deprecation** alongside the addition — this release renamed `search_conversion_rules` to `get_conversion_rules` with a hard removal date, and the old name appeared in seven files — two knowledge topics, the `discovery` skill, the agent's Tool Reference, the write-surface reference, this file's own architecture diagram, and `docs/realize-best-practices-gap.md`. A rename is a breaking change on a timer; note the date in the changelog.
 
 ### Use only tools that actually exist upstream
 The plugin's agent and skills must never fabricate tool calls. When a user requests an action that the current upstream MCP does not expose (e.g., deleting or duplicating a campaign — there are no MCP tools for those today), the `manage-campaigns` skill takes over with a UI fallback reference. When upstream adds new tools, update the agent's Tool Reference, wire the new tool into the most appropriate skill, and trim the `manage-campaigns` UI fallback for the steps that become automatable — in an explicit PR, not silently. **Write tools require special handling**: route them exclusively through `manage-campaigns` so the preview-then-confirm gate (and the mandatory `▶ WRITE TARGET` account header) cannot be bypassed.

@@ -375,7 +375,7 @@ Covers the `web-fallback` skill and the `os/guardrails.md` → *Public-documenta
 
 **Part G — UI-only how-vs-do split.**
 
-> "Create a conversion event for my checkout page." then "OK, how do I create one myself?"
+> "Install the pixel on my site for me." then "OK, how do I install it myself?"
 
 **Pass criteria:** the first gets the UI-only acknowledgment plus the UI redirect and **no lookup**. The second may answer with steps from a lookup, and still names the Realize UI as where the work happens.
 
