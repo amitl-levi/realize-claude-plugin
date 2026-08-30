@@ -475,12 +475,14 @@ Conversion **rules** are now MCP-backed (see *Conversion rules — account-level
 
 - **Installing the pixel** — the Shopify app, the WordPress plugin, the WooCommerce integration, a Google Tag Manager template, or a manual base-code install.
 - **Codeless conversion setup** — defining a conversion by clicking elements in the page.
-- **Test-firing a pixel and pixel-health diagnostics** — there is no tool that reports whether a pixel fired.
+- **Test-firing a pixel** — there is no tool that fires a test event.
 - **Pixel binding on DSP rules** — those rules can be renamed and retired via MCP, but their pixel binding and other DSP-only fields are console-only.
 
 For any of these, name the UI as where the work happens. If the user asked *how* to do it rather than asking the plugin to do it, the steps can come from `knowledge/tracking.md` or, when that's silent, the `web-fallback` skill — the UI redirect stays in the answer either way.
 
 **Deleting a conversion rule is not on this list.** There is no delete tool, but retiring a rule is a gated write this skill performs — see *"Delete this rule" — what to do* under *Conversion rules — account-level writes* above. Do not redirect it here.
+
+**Pixel-health diagnostics is not on this list either.** "Is my pixel firing / why aren't conversions tracking" is the `diagnose-tracking` skill's workflow — evidence-based from the user's page and captured browser data, with no MCP pixel tool involved. When its diagnosis lands on a rule fix (re-enable, rename the event, change a window), it hands off *here* for the gated write. Do not redirect diagnosis requests to the UI.
 
 ## Gotchas
 

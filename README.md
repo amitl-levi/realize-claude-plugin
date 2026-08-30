@@ -2,7 +2,7 @@
 
 Query Taboola **Realize** campaigns and pull performance reports through natural language, straight from Claude Code. Powered by the [Realize remote MCP](https://github.com/taboola/realize-mcp).
 
-> **Scope today:** account discovery, campaign and item inspection, targeting / audience / publisher / conversion-rule lookup, performance reports, and **create + update for campaigns, Native + Display items, and account-level conversion rules** — each write gated behind a preview-then-confirm that prominently surfaces the target account. A trimmed UI fallback remains for the actions still not supported here (delete, duplicate, bulk operations, Custom Rules, CRM uploads, pixel installation, codeless-conversion setup, pixel test-fire). For advertising questions outside the plugin's own knowledge base, answers fall back to Taboola's public advertiser help documentation, flagged as coming from online sources.
+> **Scope today:** account discovery, campaign and item inspection, targeting / audience / publisher / conversion-rule lookup, performance reports, **pixel-health diagnosis** (verifying the Taboola Pixel on your site from your page and a browser capture you provide), and **create + update for campaigns, Native + Display items, and account-level conversion rules** — each write gated behind a preview-then-confirm that prominently surfaces the target account. A trimmed UI fallback remains for the actions still not supported here (delete, duplicate, bulk operations, Custom Rules, CRM uploads, pixel installation, codeless-conversion setup, pixel test-fire). For advertising questions outside the plugin's own knowledge base, answers fall back to Taboola's public advertiser help documentation, flagged as coming from online sources.
 
 ## Prerequisites
 
@@ -74,6 +74,7 @@ This plugin wraps the remote [realize-mcp](https://github.com/taboola/realize-mc
 | [`discovery`](skills/discovery/SKILL.md) | Look up targeting metadata, audiences, publishers, conversion rules, time zones, and CTA types — resolves opaque IDs before campaign work |
 | [`reports`](skills/reports/SKILL.md) | Pull the four Realize performance reports and interpret the CSV output |
 | [`optimize-campaign`](skills/optimize-campaign/SKILL.md) | Diagnose underperforming campaigns against the toolkit's signal-quality thresholds (100+ clicks per item, daily spend ≥ 8× CPA goal, 7–14 day learning phase) and prescribe concrete actions (most now applied via `manage-campaigns`) |
+| [`diagnose-tracking`](skills/diagnose-tracking/SKILL.md) | Verify the Taboola Pixel on your site: install check from your page, firing check from a browser recording (HAR) you capture in one minute, cross-check against your conversion rules and spend. Site-side fixes come back as copy-paste instructions; rule fixes apply through `manage-campaigns`' write gate; Taboola-side gaps route to the support escalation |
 | [`manage-campaigns`](skills/manage-campaigns/SKILL.md) | Create and update campaigns, Native + Display items, and account-level conversion rules (including attribution windows and retiring a rule). Tiered preview-and-confirm pattern surfaces the target account on every write. Falls back to a UI reference for actions not supported here (delete, duplicate, bulk ops, Custom Rules, CRM uploads, pixel installation, codeless-conversion setup, pixel test-fire) |
 | [`support`](skills/support/SKILL.md) | Package the conversation into one file you can email to Taboola Support — see [`/realize-plugin:support`](#getting-help-with-a-problem) |
 | [`web-fallback`](skills/web-fallback/SKILL.md) | Answer in-scope questions the plugin's own knowledge base doesn't cover, by looking the topic up in Taboola's public advertiser help documentation. Fires only on a real miss, flags the answer as coming from online sources, and always yields to the plugin's own guidance when the two disagree |
@@ -95,6 +96,10 @@ This plugin wraps the remote [realize-mcp](https://github.com/taboola/realize-mc
 "Which items on campaign 67890 should I pause?"
 "Which sites are wasting my spend this month?"
 "My CPA doubled over the last two weeks. Help me diagnose."
+
+# pixel health
+"My pixel shows inactive in Realize — the site is https://example.com"
+"Conversions stopped tracking — can you check the pixel? Here's a recording from my browser."
 
 # discovery (look up IDs / catalogs)
 "What audiences are available for this account?"
