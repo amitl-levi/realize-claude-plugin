@@ -21,21 +21,26 @@ order; the HAR alone usually suffices.
 2. Press **F12** (Windows) or **Cmd+Opt+I** (Mac) — a panel opens. Click the **Network** tab.
 3. Tick the **Preserve log** checkbox at the top of that panel.
 4. **Reload the page.** Then perform the action being tested (e.g. complete a test purchase).
-5. Right-click anywhere in the request list → **Save all as HAR with content**.
+5. Right-click anywhere in the request list → **Save all as HAR (sanitized)**. (Older Chrome versions
+   show one option, *Save all as HAR with content* — that works too.) The sanitized export strips
+   cookies and login headers while keeping everything this check needs.
 6. Provide the saved `.har` file (drag it into the chat, or give its file path).
 
-> **Privacy note — include it when forwarding these steps:** a HAR contains cookies and form data from the
-> recorded session. Share it only into this session or with Taboola Support; don't post it anywhere public.
+> **Privacy note — include it when forwarding these steps:** prefer the **sanitized** export. A
+> non-sanitized HAR contains cookies and form data from the recorded session — share it only into this
+> session or with Taboola Support; don't post it anywhere public.
 
 ## 2. Dump `window._tfa` from the console
 
 1. In the same F12 panel, click the **Console** tab.
-2. Paste this and press Enter:
+2. If the console shows a red warning about pasting, type `allow pasting` and press Enter once — that's
+   the browser's standard confirmation, needed one time only. (Applies to the snippets in §3 too.)
+3. Paste this and press Enter:
    ```javascript
    copy(JSON.stringify(window._tfa, null, 2)); console.log(window._tfa);
    ```
    It copies the result to the clipboard — paste it back into the chat.
-3. If it prints `undefined`, the base pixel never initialized on that page — already a finding.
+4. If it prints `undefined`, the base pixel never initialized on that page — already a finding.
 
 ## 3. Quick "is the pixel even there" console check
 

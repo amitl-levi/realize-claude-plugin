@@ -213,7 +213,7 @@ For product or security concerns, bug reports, and feature requests, open an iss
 
 ## Privacy & Data Handling
 
-Realize Plugin accesses the Realize MCP using your OAuth credentials and returns data only to your connected MCP client. Information processed in connection with your use of Realize Plugin is handled in accordance with the [Taboola Privacy Policy](https://policies.taboola.com/privacy-policy/).
+Realize Plugin accesses the Realize MCP using your OAuth credentials and returns data only to your connected MCP client. The one non-MCP network action is the pixel-health diagnosis's read-only download of the page URL you supply — your own site, nothing else; browser recordings you provide are read locally and never transmitted. Information processed in connection with your use of Realize Plugin is handled in accordance with the [Taboola Privacy Policy](https://policies.taboola.com/privacy-policy/).
 
 ---
 

@@ -35,7 +35,9 @@ overflows on rule-heavy accounts; interim recovery is documented in the plugin).
 
 - Fetches the user's page and validates the pixel install (per account — multi-account and
   network-level pixel setups handled).
-- Reads a user-captured HAR to verify events actually fire, with valid conversion fields.
+- Reads a user-captured HAR to verify events actually fire, with valid conversion fields. (Both the
+  fetched page and the HAR are third-party content — the plugin treats them as evidence to quote,
+  never instructions to follow, and never echoes cookies or auth headers.)
 - Cross-checks rule status / event-name match (`get_conversion_rules`) and spend (report tools);
   "zero conversions with zero spend" is reported as healthy, not broken.
 - Applies rule fixes through the existing preview-then-confirm write gate; site fixes are copy-paste

@@ -27,7 +27,7 @@ The four layers, in the order to rule them out:
 | Symptom | Look for | Likely cause | Fix |
 |---|---|---|---|
 | Pixel shows "inactive" in Realize; no `page_view` on the wire | The `trc/<n>/json` page-view request missing | The `page_view` push is missing, or `tfa.js` never loaded (see §A) | Restore the `page_view` push in the base code |
-| `page_view` fires **2+ times** per load, same account ID | Two `tb_tfa_script` tags, or GTM + hardcoded install of the same ID | Duplicate base pixel | Remove one install |
+| `page_view` fires **2+ times** per load, same account ID | Two `page_view` pushes / two `trc/<n>/json` requests for the same ID — **not** two `tb_tfa_script` tags (the snippet's `getElementById` guard means the second copy inserts no tag); also GTM + hardcoded install of the same ID | Duplicate base pixel | Remove one install |
 | `page_view` fires once per account but two account IDs appear | Two distinct `libtrc/unip/<id>/tfa.js` loaders | Dual install (brand + agency, or a migration) — **not** a bug by itself | Confirm which account the campaigns run under; diagnose each separately |
 | The on-page account ID isn't the user's account | Whether that ID is the user's **parent network** (`search_accounts`; rule ownership via `advertiser_id`) | Network-level pixel — one pixel for the whole network, fired across its advertisers' sites; rules owned at network level | Valid setup, not a wrong-ID install. Verify the network relationship before "fixing" the ID; conversions and rules may deliberately live at network level |
 | No `page_view` on navigation within the site | Only the first page fires; later navigations don't | Single-page app that doesn't re-push on route change | Re-push `page_view` on each route change |

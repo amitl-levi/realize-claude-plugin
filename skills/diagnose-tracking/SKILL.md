@@ -1,6 +1,6 @@
 ---
 name: diagnose-tracking
-description: Diagnose whether the Taboola Pixel on an advertiser's site is installed correctly, actually firing, and feeding conversions into Realize — and route the fix. Covers both the base pixel (page_view / "pixel shows inactive") and specific conversion events and their rules ("make_purchase isn't tracking"). Activates on "my pixel isn't firing", "conversions aren't tracking", "is my pixel installed correctly", "Realize shows my pixel as inactive", "purchases are double-counted", "revenue isn't showing on my conversions", "check the pixel on this page". Works from the user's page URL plus evidence the user captures (a HAR network recording, a window._tfa dump), cross-checks conversion rules and reports via the MCP, and hands rule fixes to manage-campaigns. Not for installing the pixel (web-fallback has the platform steps), campaign performance questions (optimize-campaign), or app-install campaigns landing on an app store — no web pixel runs there (S2S/MMP territory; see "URLs the pixel can never run on").
+description: Diagnose whether the Taboola Pixel on an advertiser's site is installed correctly, actually firing, and feeding conversions into Realize — and route the fix. Covers both the base pixel ("pixel shows inactive") and specific conversion events and their rules ("make_purchase isn't tracking"). Activates on "my pixel isn't firing", "conversions aren't tracking", "is my pixel installed correctly", "purchases are double-counted", "check the pixel on this page". Works from the user's page URL plus evidence the user captures (a HAR recording, a window._tfa dump), cross-checks conversion rules and reports via the MCP, and hands rule fixes to manage-campaigns. Not for installing the pixel (web-fallback has the platform steps), campaign performance questions (optimize-campaign), or app-install campaigns landing on an app store — no web pixel runs there (S2S/MMP territory).
 allowed-tools: ["Read", "Bash", "Grep", "Glob", "AskUserQuestion"]
 ---
 
@@ -76,9 +76,14 @@ is a false finding, not a diagnosis.
 
 ### Step 2 — Static check (fetch the page)
 
-Download the **raw HTML** of the user's page via Bash — `curl -sL --max-time 20 "<url>" -o <temp-file>` —
+Download the **raw HTML** of the user's page via Bash —
+`curl -sS --proto '=http,https' --max-redirs 3 --max-time 20 -L -w '%{http_code} %{url_effective}' "<url>" -o <temp-file>` —
 then `Grep` the saved file for the pixel markers (`libtrc`, `unip`, `tfa.js`, `_tfa`, `tb_tfa_script`) and
-`Read` only the matching regions.
+`Read` only the matching regions. **Check the two values `-w` printed before trusting the file**: if the
+final status is not 2xx, or `url_effective` left the host the user named (a redirect elsewhere), skip the
+static verdict and go to Step 3 — a saved error page or a foreign page must not be diagnosed as the user's
+site. The `--proto` and `--max-redirs` flags are part of the trust boundary (no `file://`-class schemes, no
+unbounded redirect chains on a user-supplied URL); keep them.
 
 > **Do NOT use the `WebFetch` tool for this check.** WebFetch converts the page to readable text before
 > answering, which strips every `<script>` tag — tested live (2026-08-22): a page whose raw HTML carried
@@ -100,7 +105,7 @@ Two findings from live testing that shape how the download result is read:
 
 Check against [references/pixel-reference.md](references/pixel-reference.md):
 base code present, numeric account `id` (no placeholder), loader URL's account ID matches the pushed `id`,
-placement high in `<head>`, single install per account ID. **Enumerate every** `libtrc/unip/<id>/tfa.js`
+placement high in `<head>`, no duplicate install (judged by `page_view` fire count per account in Step 3 — a second snippet copy inserts no second script tag, so the DOM can look clean while the pixel double-fires). **Enumerate every** `libtrc/unip/<id>/tfa.js`
 loader — pages often carry two accounts (brand + agency, JS + GTM), and each account gets its own
 diagnosis; a healthy one can mask a broken sibling.
 
@@ -188,6 +193,9 @@ Fix: <the concrete instruction, or the gated-write handoff, or the escalation of
   only statically checked.
 - Per `os/guardrails.md`: no tool names, no skill names, no `Sources:` footer in user output. The one
   carve-out is the support command in the escalation offer.
+- The guardrails' raw-field-name ban covers **Realize API** fields and enums. The user's own pixel
+  event names, `_tfa` parameters, and on-wire values (`make_purchase`, `revenue`, `en=`, `it=`) are
+  their site's code — quote them verbatim; translating them would destroy the diagnostic.
 
 ## Guardrails
 

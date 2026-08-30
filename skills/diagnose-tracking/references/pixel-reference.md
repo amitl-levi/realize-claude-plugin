@@ -22,7 +22,7 @@ window._tfa.push({ notify: "event", name: "page_view", id: 1234567 });   // id =
   document.createElement("script"),
   document.getElementsByTagName("script")[0],
   "//cdn.taboola.com/libtrc/unip/1234567/tfa.js",   // <account_id> here must match the pushed id
-  "tb_tfa_script"                                    // script element id — two of these = double install
+  "tb_tfa_script"                                    // the getElementById guard above means a second copy of this snippet inserts no second tag — but its page_view push still fires
 );
 ```
 
@@ -30,7 +30,7 @@ What "correct" means:
 
 - `id` is the real **numeric** account ID — never a placeholder (`your_account_id`, `1234`, `ACCOUNT_ID`).
 - The `<account_id>` inside the `tfa.js` URL **matches** the pushed `id`.
-- The script element id is `tb_tfa_script`, and only one instance exists **per account ID**.
+- The script element id is `tb_tfa_script`. It is a fixed DOM id, so at most one such element exists per page regardless of how many accounts fire — a second copy of the snippet is invisible in the DOM (the `getElementById` guard short-circuits) and shows up only as a **second `page_view` fire**.
 - Nothing above it blocks or delays it (heavy synchronous scripts, a consent gate that never resolves).
 
 > **Don't confuse the pixel with Taboola's ad widget.** Pages that *show* Taboola ads (publisher sites)
@@ -142,8 +142,9 @@ GET  ...unip?...&id=1234567&en=make_purchase&revenue=49.90&currency=USD&orderid=
 
 - `tfa.js` → **404**: wrong account ID in the loader URL, or the account isn't set up for the pixel.
 - No `tfa.js` request at all: base code missing — or present but blocked (consent tool, ad-blocker, CSP).
-- `page_view` fires **2+ times** per load *for the same account ID*: duplicate base pixel, or a
-  single-page-app re-mounting it.
+- `page_view` fires **2+ times** per load *for the same account ID*: duplicate base pixel (the
+  reliable tell — a second snippet copy adds no second script tag, but its `page_view` push fires),
+  or a single-page-app re-mounting it.
 - `page_view` arrives as a legacy `unip?en=page_view` beacon: image pixel or stale library (see above).
 - `page_view` JSON with no `mpvd.item-url`: URL-based conversion rules can't match.
 - No `unip?en=make_purchase` after a purchase: event not implemented, its trigger never fires, or a
