@@ -33,6 +33,12 @@ What "correct" means:
 - The script element id is `tb_tfa_script`, and only one instance exists **per account ID**.
 - Nothing above it blocks or delays it (heavy synchronous scripts, a consent gate that never resolves).
 
+> **Don't confuse the pixel with Taboola's ad widget.** Pages that *show* Taboola ads (publisher sites)
+> load `cdn.taboola.com/libtrc/<publisher-id>/loader.js` — same `libtrc` path family, entirely different
+> thing. The advertiser pixel is only ever `libtrc/unip/<account_id>/tfa.js` (note the `unip/`). A page can
+> legitimately carry both (an advertiser whose site also runs Taboola ads); judge the pixel only by the
+> `unip/…/tfa.js` loader.
+
 ## The network requests a healthy pixel makes
 
 | Request | What it means |

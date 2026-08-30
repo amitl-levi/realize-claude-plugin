@@ -87,6 +87,17 @@ then `Grep` the saved file for the pixel markers (`libtrc`, `unip`, `tfa.js`, `_
 > the banned Realize-API curl — see `CLAUDE.md`, *No direct curl*; the ban is on API endpoints, and this
 > fetch is scoped to the user's page under diagnosis, nothing else.)
 
+Two findings from live testing that shape how the download result is read:
+
+- **`libtrc` alone is not the pixel.** Taboola *publisher* pages (sites that show Taboola ads) load
+  `cdn.taboola.com/libtrc/<publisher>/loader.js` — verified live on a real publisher site with zero
+  advertiser pixel present. Only `libtrc/unip/<id>/tfa.js` is the advertiser pixel. Reporting a
+  `loader.js` hit as "pixel installed" is a false finding.
+- **If the download fails, returns a bot-challenge page, or a near-empty JavaScript shell** (a few KB
+  with no real content — common on single-page apps), skip the static verdict entirely: say the page
+  couldn't be inspected statically and move to Step 3 — the user's browser capture answers everything
+  the static check would have, and more.
+
 Check against [references/pixel-reference.md](references/pixel-reference.md):
 base code present, numeric account `id` (no placeholder), loader URL's account ID matches the pushed `id`,
 placement high in `<head>`, single install per account ID. **Enumerate every** `libtrc/unip/<id>/tfa.js`
