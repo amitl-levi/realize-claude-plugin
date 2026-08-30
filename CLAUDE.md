@@ -178,6 +178,8 @@ constraints that are easy to erode:
 ### No direct curl / no API client code
 All Realize API access flows through MCP tools. Do not add Bash curl calls that hit Realize endpoints directly — that bypasses the MCP's rate limiting, auth handling, and safety guarantees.
 
+One sanctioned non-API use exists: `diagnose-tracking` downloads the raw HTML of **the user's page under diagnosis** via curl. That's deliberate, not drift — `WebFetch` converts pages to readable text and strips every `<script>` tag (verified live 2026-08-22: a page with 11 script tags in raw HTML came back with zero code visible), so a WebFetch-based pixel check reports "no pixel" on every site. Don't "clean up" the curl back to WebFetch; the skill and the agent both document why.
+
 ### Stale capability claims are their own bug class
 
 The conversion-rule sync surfaced a failure mode worth naming, because it will recur on the next upstream release. When the MCP gains a tool, the plugin doesn't just *lack* the new capability — it actively **asserts the capability doesn't exist**, in five places at once: the agent's triage table, its tool-existence boundary, the guardrails' out-of-MCP list, the `manage-campaigns` UI-fallback section, and the README scope line. Until all five are updated, the plugin confidently redirects users to the UI for work it can already do, which is worse than silence because it sounds authoritative.

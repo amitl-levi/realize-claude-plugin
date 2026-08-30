@@ -1,7 +1,7 @@
 ---
 name: diagnose-tracking
 description: Diagnose whether the Taboola Pixel on an advertiser's site is installed correctly, actually firing, and feeding conversions into Realize — and route the fix. Covers both the base pixel (page_view / "pixel shows inactive") and specific conversion events and their rules ("make_purchase isn't tracking"). Activates on "my pixel isn't firing", "conversions aren't tracking", "is my pixel installed correctly", "Realize shows my pixel as inactive", "purchases are double-counted", "revenue isn't showing on my conversions", "check the pixel on this page". Works from the user's page URL plus evidence the user captures (a HAR network recording, a window._tfa dump), cross-checks conversion rules and reports via the MCP, and hands rule fixes to manage-campaigns. Not for installing the pixel (web-fallback has the platform steps), campaign performance questions (optimize-campaign), or app-install campaigns landing on an app store — no web pixel runs there (S2S/MMP territory; see "URLs the pixel can never run on").
-allowed-tools: ["Read", "Bash", "Grep", "Glob", "AskUserQuestion", "WebFetch"]
+allowed-tools: ["Read", "Bash", "Grep", "Glob", "AskUserQuestion"]
 ---
 
 # Diagnose Tracking
@@ -76,7 +76,18 @@ is a false finding, not a diagnosis.
 
 ### Step 2 — Static check (fetch the page)
 
-`WebFetch` the user's page URL and check against [references/pixel-reference.md](references/pixel-reference.md):
+Download the **raw HTML** of the user's page via Bash — `curl -sL --max-time 20 "<url>" -o <temp-file>` —
+then `Grep` the saved file for the pixel markers (`libtrc`, `unip`, `tfa.js`, `_tfa`, `tb_tfa_script`) and
+`Read` only the matching regions.
+
+> **Do NOT use the `WebFetch` tool for this check.** WebFetch converts the page to readable text before
+> answering, which strips every `<script>` tag — tested live (2026-08-22): a page whose raw HTML carried
+> 11 script tags came back through WebFetch with zero code visible. A WebFetch-based static check reports
+> "no pixel" on every site. Raw download + Grep is the only correct mechanic. (This raw download is not
+> the banned Realize-API curl — see `CLAUDE.md`, *No direct curl*; the ban is on API endpoints, and this
+> fetch is scoped to the user's page under diagnosis, nothing else.)
+
+Check against [references/pixel-reference.md](references/pixel-reference.md):
 base code present, numeric account `id` (no placeholder), loader URL's account ID matches the pushed `id`,
 placement high in `<head>`, single install per account ID. **Enumerate every** `libtrc/unip/<id>/tfa.js`
 loader — pages often carry two accounts (brand + agency, JS + GTM), and each account gets its own
