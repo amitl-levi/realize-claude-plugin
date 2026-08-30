@@ -42,10 +42,3 @@ overflows on rule-heavy accounts; interim recovery is documented in the plugin).
   instructions; verified-healthy-but-still-nothing cases end in the support-email escalation — the
   exact case ask #1 would close.
 
-## Backlog (tracked plugin-side, listed for visibility)
-
-- Re-diff against the source skill once its branch merges to its home repo; pick up new client-safe
-  lessons.
-- Confirm with the source skill's author which consent guidance is public-safe (supported-CMP list).
-- Live browser capture (needs its own safety review) and a Node HAR parser — only if evidence shows
-  the need.

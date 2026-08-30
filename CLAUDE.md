@@ -255,7 +255,22 @@ When [taboola/realize-mcp](https://github.com/taboola/realize-mcp) ships a new v
 
 ## Open items
 
-These are placeholders that should be updated by the repo maintainer before the first public release:
+Planned next on the skill side:
+
+- **Live browser capture for `diagnose-tracking`** — decided 2026-08-22, priority raised because the
+  HAR path makes the *user* do the work (capture and hand over a recording), and removing user effort
+  is a product goal. Scope: the plugin drives a browser to the page under diagnosis and watches the
+  pixel traffic itself. **The non-negotiable price tag is the isolated-browser trust boundary**: the
+  driven browser must be a throwaway profile with no logins — never a signed-in browser, which a
+  hostile page could turn against the user's live sessions — and that rule must be structurally
+  unbypassable, not advisory. Needs its own safety review before any implementation. Purchase-funnel
+  capture (test purchases) stays out of scope even then. A Node HAR parser remains
+  evidence-permitting: only if sliced prose reading proves error-prone in the field.
+- **Post-merge re-diff of the source pixel skill** — when its branch merges in its home repo, diff
+  against the adopted content and pick up new client-safe lessons; also confirm with its author which
+  consent guidance (the supported-CMP list) is public-safe.
+
+Placeholders that should be updated by the repo maintainer before the first public release:
 
 - **`SECURITY.md`** — replace `security@taboola.com` with the real disclosure address if it differs.
 - **`plugin.json` `author`** — currently `"Taboola"`; specify a team or individual maintainer if desired.
